@@ -4,9 +4,10 @@ Anthropic-native agentic services for **Oracle Cloud EPM (Planning / FCCS)**
 built on a thin, typed MCP tool layer. **Mock-first**: every demo, eval, and
 tool runs with zero Oracle credentials until you flip `EPM_MODE=live`.
 
-> Status: `0.1.0` — P0 scaffold. Core + Planning read + FCCS close read tools,
-> three subagents, three skills, approval/write guards, and evals are in place.
-> Live-mode REST transport (Basic/OAuth) is the next milestone.
+> Status: `0.2.0` — P0 + P1 scaffold. Core, Planning read, FCCS close read,
+> Data Integration watchtower, and Metadata governance tools; six subagents,
+> four skills, approval/write guards, and 19 evals are in place. Live-mode REST
+> transport (Basic/OAuth) is the next milestone.
 
 ## Why this shape
 
@@ -31,9 +32,11 @@ servers-as-code/            Typed business fns (code-execution-with-MCP pattern)
 mcp/oracle-epm-core/        Core MCP server (stdio)
 mcp/planning-ops/           Planning MCP server
 mcp/fccs-close/             FCCS close MCP server
+mcp/data-integration-watchtower/  Data Integration / Data Management MCP server
+mcp/metadata-governance/    Metadata snapshot / diff / risk MCP server
 apps/claude-agent/          Orchestrator, policies, evals
 .claude/                    agents/, skills/, hooks/, settings.json
-fixtures/                   mock-planning/, mock-fccs/
+fixtures/                   mock-planning/, mock-fccs/, mock-data-integration/, mock-metadata/
 docs/                       api-mapping.md, approval-model.md
 ```
 
@@ -52,6 +55,8 @@ npm run demo             # runnable mock orchestrator demo (no creds)
 npm run mcp:core         # oracle-epm-core
 npm run mcp:planning     # planning-ops
 npm run mcp:fccs         # fccs-close
+npm run mcp:di           # data-integration-watchtower
+npm run mcp:metadata     # metadata-governance
 ```
 
 Point a Claude Code / MCP client at these via stdio. The default profile in

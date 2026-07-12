@@ -13,7 +13,18 @@
       "mcp__fccs-close__fccs_close_readiness_report",
       "mcp__fccs-close__fccs_validate_metadata",
       "mcp__fccs-close__fccs_retrieve_journals",
-      "mcp__fccs-close__fccs_intercompany_matching_report"
+      "mcp__fccs-close__fccs_intercompany_matching_report",
+      "mcp__data-integration-watchtower__di_schedule_inventory",
+      "mcp__data-integration-watchtower__di_list_pipelines",
+      "mcp__data-integration-watchtower__di_get_job_status",
+      "mcp__data-integration-watchtower__di_failed_load_summary",
+      "mcp__data-integration-watchtower__di_diagnose_failures",
+      "mcp__data-integration-watchtower__di_export_mapping",
+      "mcp__data-integration-watchtower__di_pov_lock_status",
+      "mcp__metadata-governance__metadata_export_snapshot",
+      "mcp__metadata-governance__metadata_compare_snapshots",
+      "mcp__metadata-governance__metadata_find_risks",
+      "mcp__metadata-governance__metadata_member_impact_analysis"
     ],
     "ask": [
       "mcp__oracle-epm-core__epm_execute_job"

@@ -1,0 +1,83 @@
+{
+  "pipelines": [
+    {
+      "pipelineId": "PL_NIGHTLY",
+      "name": "Nightly Actuals Load",
+      "schedule": "0 2 * * *",
+      "enabled": true,
+      "integrations": ["INT_GL_ACTUALS", "INT_HR_HEADCOUNT"]
+    },
+    {
+      "pipelineId": "PL_FORECAST",
+      "name": "Weekly Forecast Push",
+      "schedule": "0 4 * * 1",
+      "enabled": true,
+      "integrations": ["INT_FCST_REVENUE"]
+    },
+    {
+      "pipelineId": "PL_ADHOC_FX",
+      "name": "Ad-hoc FX Rates",
+      "schedule": null,
+      "enabled": false,
+      "integrations": ["INT_FX_RATES"]
+    }
+  ],
+  "integrations": [
+    { "integrationId": "INT_GL_ACTUALS", "name": "GL Actuals", "source": "Oracle GL", "target": "Financ:ORC_Plan" },
+    { "integrationId": "INT_HR_HEADCOUNT", "name": "HR Headcount", "source": "HCM", "target": "Financ:ORC_Plan" },
+    { "integrationId": "INT_FCST_REVENUE", "name": "Forecast Revenue", "source": "CSV", "target": "Financ:ORC_Plan" },
+    { "integrationId": "INT_FX_RATES", "name": "FX Rates", "source": "CSV", "target": "Financ:ORC_Rep" }
+  ],
+  "jobs": [
+    {
+      "jobId": 8801,
+      "integrationId": "INT_GL_ACTUALS",
+      "status": "COMPLETED",
+      "rowsProcessed": 45210,
+      "rowsRejected": 0,
+      "startTime": "2026-07-12T02:00:04Z",
+      "endTime": "2026-07-12T02:07:31Z"
+    },
+    {
+      "jobId": 8802,
+      "integrationId": "INT_HR_HEADCOUNT",
+      "status": "COMPLETED_WITH_ERRORS",
+      "rowsProcessed": 1180,
+      "rowsRejected": 42,
+      "startTime": "2026-07-12T02:08:00Z",
+      "endTime": "2026-07-12T02:09:12Z",
+      "failedRows": [
+        { "row": 17, "reason": "Unmapped member for dimension Entity: value 'LE_999'" },
+        { "row": 88, "reason": "Unmapped member for dimension Account: value 'ACC_TEMP'" },
+        { "row": 210, "reason": "Amount not numeric: 'N/A'" }
+      ]
+    },
+    {
+      "jobId": 8803,
+      "integrationId": "INT_FCST_REVENUE",
+      "status": "FAILED",
+      "rowsProcessed": 0,
+      "rowsRejected": 0,
+      "startTime": "2026-07-12T04:00:02Z",
+      "endTime": "2026-07-12T04:00:05Z",
+      "failedRows": [
+        { "row": 0, "reason": "POV locked for Financ:ORC_Plan FY26/Jun/Forecast" }
+      ]
+    }
+  ],
+  "mappings": [
+    {
+      "integrationId": "INT_GL_ACTUALS",
+      "dimension": "Account",
+      "rules": [
+        { "type": "EXPLICIT", "source": "4000", "target": "Receita" },
+        { "type": "EXPLICIT", "source": "5000", "target": "Despesa" },
+        { "type": "LIKE", "source": "6*", "target": "Despesa" }
+      ]
+    }
+  ],
+  "povLocks": [
+    { "target": "Financ:ORC_Plan", "year": "FY26", "period": "Jun", "scenario": "Forecast", "locked": true },
+    { "target": "Financ:ORC_Plan", "year": "FY26", "period": "Jun", "scenario": "Actual", "locked": false }
+  ]
+}

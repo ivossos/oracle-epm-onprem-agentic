@@ -1,0 +1,13 @@
+{
+  "name": "@epm/mcp-metadata-governance",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": { "mcp-metadata-governance": "src/index.ts" },
+  "dependencies": {
+    "@epm/core-client": "*",
+    "@epm/servers-as-code": "*",
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "zod": "^3.24.1"
+  }
+}

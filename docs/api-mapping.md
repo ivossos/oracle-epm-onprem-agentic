@@ -2,7 +2,7 @@
 
 | Document | |
 | --- | --- |
-| **Version** | 0.1.0 |
+| **Version** | 0.2.0 |
 | **Date** | 2026-07-12 |
 | **Author** | Henry (agent) for Ioannis Vossos |
 | **Status** | Draft — mock-first scaffold |
@@ -13,6 +13,7 @@
 | Version | Date | Author | Change |
 | --- | --- | --- | --- |
 | 0.1.0 | 2026-07-12 | Henry | Initial P0 mapping (core, planning, fccs) |
+| 0.2.0 | 2026-07-12 | Henry | P1 packs (data-integration-watchtower, metadata-governance) |
 
 ---
 
@@ -47,6 +48,27 @@ Live-mode transport is not yet implemented; the client throws a clear
 | `fccs_validate_metadata` | FCCS Validate Metadata job | no |
 | `fccs_retrieve_journals` | FCCS Journals REST | no |
 | `fccs_intercompany_matching_report` | IC Matching report REST | no |
+
+## data-integration-watchtower
+
+| MCP tool | Oracle REST | Mutating |
+| --- | --- | --- |
+| `di_schedule_inventory` | Data Integration pipelines + integrations | no |
+| `di_list_pipelines` | `GET .../pipelines` | no |
+| `di_get_job_status` | Data Integration job status | no |
+| `di_failed_load_summary` | derived from job status | no |
+| `di_diagnose_failures` | job status + POV locks | no |
+| `di_export_mapping` | mapping export | no |
+| `di_pov_lock_status` | POV lock status | no |
+
+## metadata-governance
+
+| MCP tool | Oracle REST | Mutating |
+| --- | --- | --- |
+| `metadata_export_snapshot` | metadata export | no |
+| `metadata_compare_snapshots` | derived (two snapshots) | no |
+| `metadata_find_risks` | derived (outline scan) | no |
+| `metadata_member_impact_analysis` | derived (outline scan) | no |
 
 ## Primary sources
 

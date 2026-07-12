@@ -7,11 +7,17 @@ import type {
   EpmClientConfig,
   EpmFile,
   IntercompanyMatch,
+  Integration,
+  IntegrationJob,
   Journal,
   JobDefinition,
   JobResult,
   JobStatusCode,
+  Mapping,
+  MetadataSnapshot,
   MetadataValidationResult,
+  Pipeline,
+  PovLock,
 } from "./types.js";
 import { loadConfig } from "./config.js";
 
@@ -36,6 +42,18 @@ interface FccsFixture {
   metadataValidation: MetadataValidationResult;
   journals: Journal[];
   intercompany: IntercompanyMatch[];
+}
+
+interface DataIntegrationFixture {
+  pipelines: Pipeline[];
+  integrations: Integration[];
+  jobs: IntegrationJob[];
+  mappings: Mapping[];
+  povLocks: PovLock[];
+}
+
+interface MetadataFixture {
+  snapshots: Record<string, MetadataSnapshot>;
 }
 
 /**
@@ -134,6 +152,67 @@ export class EpmClient {
       return readFixture<FccsFixture>("mock-fccs/fccs.json").intercompany;
     }
     return this.liveNotImplemented("intercompanyMatching");
+  }
+
+  // ---- Data Integration / Data Management (read) ----
+
+  async listPipelines(): Promise<Pipeline[]> {
+    if (this.isMock) {
+      return readFixture<DataIntegrationFixture>(
+        "mock-data-integration/data-integration.json"
+      ).pipelines;
+    }
+    return this.liveNotImplemented("listPipelines");
+  }
+
+  async listIntegrations(): Promise<Integration[]> {
+    if (this.isMock) {
+      return readFixture<DataIntegrationFixture>(
+        "mock-data-integration/data-integration.json"
+      ).integrations;
+    }
+    return this.liveNotImplemented("listIntegrations");
+  }
+
+  async listIntegrationJobs(): Promise<IntegrationJob[]> {
+    if (this.isMock) {
+      return readFixture<DataIntegrationFixture>(
+        "mock-data-integration/data-integration.json"
+      ).jobs;
+    }
+    return this.liveNotImplemented("listIntegrationJobs");
+  }
+
+  async exportMapping(integrationId: string): Promise<Mapping[]> {
+    if (this.isMock) {
+      return readFixture<DataIntegrationFixture>(
+        "mock-data-integration/data-integration.json"
+      ).mappings.filter((m) => m.integrationId === integrationId);
+    }
+    return this.liveNotImplemented("exportMapping");
+  }
+
+  async listPovLocks(): Promise<PovLock[]> {
+    if (this.isMock) {
+      return readFixture<DataIntegrationFixture>(
+        "mock-data-integration/data-integration.json"
+      ).povLocks;
+    }
+    return this.liveNotImplemented("listPovLocks");
+  }
+
+  // ---- Metadata governance (read) ----
+
+  async getMetadataSnapshot(which: string): Promise<MetadataSnapshot> {
+    if (this.isMock) {
+      const snap = readFixture<MetadataFixture>("mock-metadata/metadata.json")
+        .snapshots[which];
+      if (!snap) {
+        throw new Error(`Unknown snapshot '${which}' (try 'baseline' | 'current')`);
+      }
+      return snap;
+    }
+    return this.liveNotImplemented("getMetadataSnapshot");
   }
 
   // ---- Job execution (mutating; requires approval packet) ----

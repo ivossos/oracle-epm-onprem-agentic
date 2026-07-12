@@ -1,0 +1,30 @@
+{
+  "snapshots": {
+    "baseline": {
+      "snapshotId": "SNAP_2026_05",
+      "capturedAt": "2026-05-31T23:00:00Z",
+      "app": "Financ",
+      "members": [
+        { "dimension": "Account", "name": "Receita", "parent": "Total Conta", "dataStorage": "Stored", "formula": null },
+        { "dimension": "Account", "name": "Despesa", "parent": "Total Conta", "dataStorage": "Stored", "formula": null },
+        { "dimension": "Account", "name": "Margem", "parent": "Total Conta", "dataStorage": "Dynamic Calc", "formula": "Receita - Despesa", "solveOrder": 10 },
+        { "dimension": "Entity", "name": "SP", "parent": "Brasil", "dataStorage": "Stored", "formula": null },
+        { "dimension": "Entity", "name": "RJ", "parent": "Brasil", "dataStorage": "Stored", "formula": null }
+      ]
+    },
+    "current": {
+      "snapshotId": "SNAP_2026_06",
+      "capturedAt": "2026-06-30T23:00:00Z",
+      "app": "Financ",
+      "members": [
+        { "dimension": "Account", "name": "Receita", "parent": "Total Conta", "dataStorage": "Stored", "formula": null },
+        { "dimension": "Account", "name": "Despesa", "parent": "Total Conta", "dataStorage": "Stored", "formula": null },
+        { "dimension": "Account", "name": "Margem", "parent": "Total Conta", "dataStorage": "Dynamic Calc", "formula": "Receita - Despesa", "solveOrder": null },
+        { "dimension": "Account", "name": "MargemPct", "parent": "Total Conta", "dataStorage": "Stored", "formula": "Margem / Receita" },
+        { "dimension": "Account", "name": "ContaAntiga", "parent": "Total Conta", "dataStorage": "Stored", "formula": null, "hasData": false },
+        { "dimension": "Entity", "name": "SP", "parent": "Brasil", "dataStorage": "Stored", "formula": null, "hasData": true },
+        { "dimension": "Entity", "name": "MG", "parent": "Brasil", "dataStorage": "Stored", "formula": null, "hasData": true }
+      ]
+    }
+  }
+}
