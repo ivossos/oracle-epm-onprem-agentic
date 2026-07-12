@@ -1,0 +1,58 @@
+# API Mapping — Oracle EPM REST → MCP tools
+
+| Document | |
+| --- | --- |
+| **Version** | 0.1.0 |
+| **Date** | 2026-07-12 |
+| **Author** | Henry (agent) for Ioannis Vossos |
+| **Status** | Draft — mock-first scaffold |
+| **Owner** | Ioannis Vossos |
+
+## Change log
+
+| Version | Date | Author | Change |
+| --- | --- | --- | --- |
+| 0.1.0 | 2026-07-12 | Henry | Initial P0 mapping (core, planning, fccs) |
+
+---
+
+Mapping between implemented MCP tools and the Oracle Cloud EPM REST surface.
+Live-mode transport is not yet implemented; the client throws a clear
+`liveNotImplemented` error outside mock mode.
+
+## oracle-epm-core
+
+| MCP tool | Oracle REST | Mutating |
+| --- | --- | --- |
+| `epm_config` | (local) | no |
+| `epm_ping` | `GET /interop/rest/{v}/version` | no |
+| `epm_list_applications` | Planning `GET /HyperionPlanning/rest/{v}/applications` | no |
+| `epm_list_job_definitions` | `GET .../jobdefinitions` | no |
+| `epm_get_job_status` | `GET .../jobs/{jobId}` | no |
+| `epm_execute_job` | `POST .../jobs` | **YES** |
+
+## planning-ops
+
+| MCP tool | Oracle REST | Mutating |
+| --- | --- | --- |
+| `planning_export_data_slice` | Export Data REST (`exportdataslice`) | no |
+| `planning_variance_snapshot` | derived from export slice | no |
+| `planning_get_substitution_variables` | `GET .../substitutionvariables` | no |
+
+## fccs-close
+
+| MCP tool | Oracle REST | Mutating |
+| --- | --- | --- |
+| `fccs_close_readiness_report` | aggregate (validate + journals + IC) | no |
+| `fccs_validate_metadata` | FCCS Validate Metadata job | no |
+| `fccs_retrieve_journals` | FCCS Journals REST | no |
+| `fccs_intercompany_matching_report` | IC Matching report REST | no |
+
+## Primary sources
+
+- Manage Jobs: https://docs.oracle.com/en/cloud/saas/enterprise-performance-management-common/prest/manage_jobs.html
+- Export Data: https://docs.oracle.com/en/cloud/saas/enterprise-performance-management-common/prest/export_data.html
+- Rules: https://docs.oracle.com/en/cloud/saas/enterprise-performance-management-common/prest/rules.html
+- FCCS: https://docs.oracle.com/en/cloud/saas/enterprise-performance-management-common/prest/fccs_chapter_intro.html
+- Data Integration: https://docs.oracle.com/en/cloud/saas/enterprise-performance-management-common/prest/fdmee_rest_apis.html
+- EPM Automate: https://docs.oracle.com/en/cloud/saas/enterprise-performance-management-common/cepma/using_epmctl.html

@@ -1,0 +1,89 @@
+{
+  "applications": [
+    {
+      "name": "FCCS",
+      "type": "FCCS",
+      "cubes": ["Consol"]
+    }
+  ],
+  "metadataValidation": {
+    "valid": false,
+    "errors": 2,
+    "warnings": 1,
+    "issues": [
+      {
+        "dimension": "Account",
+        "member": "IC_Sales",
+        "severity": "ERROR",
+        "message": "Dynamic Calc member referenced by stored parent without solve order"
+      },
+      {
+        "dimension": "Entity",
+        "member": "LE_205",
+        "severity": "ERROR",
+        "message": "Entity missing intercompany designation but used in IC account"
+      },
+      {
+        "dimension": "Account",
+        "member": "OtherIncome",
+        "severity": "WARNING",
+        "message": "Stored member with no children and no data — potential orphan"
+      }
+    ]
+  },
+  "journals": [
+    {
+      "label": "JV-2026-06-001",
+      "status": "Approved",
+      "period": "Jun",
+      "scenario": "Actual",
+      "year": "FY26",
+      "entity": "LE_100",
+      "balanced": true,
+      "totalDebit": 500000,
+      "totalCredit": 500000
+    },
+    {
+      "label": "JV-2026-06-002",
+      "status": "Submitted",
+      "period": "Jun",
+      "scenario": "Actual",
+      "year": "FY26",
+      "entity": "LE_205",
+      "balanced": true,
+      "totalDebit": 120000,
+      "totalCredit": 120000
+    },
+    {
+      "label": "JV-2026-06-003",
+      "status": "Working",
+      "period": "Jun",
+      "scenario": "Actual",
+      "year": "FY26",
+      "entity": "LE_100",
+      "balanced": false,
+      "totalDebit": 80000,
+      "totalCredit": 75000
+    }
+  ],
+  "intercompany": [
+    {
+      "entity": "LE_100",
+      "partner": "LE_205",
+      "account": "IC_Sales",
+      "entityAmount": 300000,
+      "partnerAmount": 300000,
+      "difference": 0,
+      "matched": true
+    },
+    {
+      "entity": "LE_100",
+      "partner": "LE_300",
+      "account": "IC_Loans",
+      "entityAmount": 150000,
+      "partnerAmount": 138000,
+      "difference": 12000,
+      "matched": false
+    }
+  ]
+}

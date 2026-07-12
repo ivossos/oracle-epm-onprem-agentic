@@ -1,0 +1,33 @@
+{
+  "applications": [
+    {
+      "name": "Financ",
+      "type": "PLANNING",
+      "cubes": ["ORC_Plan", "ORC_Rep"]
+    }
+  ],
+  "jobDefinitions": [
+    { "jobName": "Agg_ORC_Plan", "jobType": "RULES", "description": "Agregacao do cubo de planejamento" },
+    { "jobName": "Export_Actuals", "jobType": "EXPORT_DATA", "description": "Exporta dados de atual" },
+    { "jobName": "Refresh_Financ", "jobType": "CUBE_REFRESH", "description": "Refresh da aplicacao" },
+    { "jobName": "Import_Forecast", "jobType": "IMPORT_DATA", "description": "Importa forecast" }
+  ],
+  "substitutionVariables": [
+    { "name": "CurrentYear", "value": "FY26", "plan": "ORC_Plan" },
+    { "name": "CurrentMonth", "value": "Jun", "plan": "ORC_Plan" },
+    { "name": "CurrentScenario", "value": "Forecast", "plan": "ORC_Plan" }
+  ],
+  "dataSlice": {
+    "pov": { "Ano": "FY26", "Periodo": "Jun", "Versao": "Trabalho" },
+    "rows": [
+      { "members": { "Conta": "Receita", "Filial": "SP", "Cenario": "Actual" }, "value": 1250000 },
+      { "members": { "Conta": "Receita", "Filial": "SP", "Cenario": "Forecast" }, "value": 1180000 },
+      { "members": { "Conta": "Receita", "Filial": "RJ", "Cenario": "Actual" }, "value": 890000 },
+      { "members": { "Conta": "Receita", "Filial": "RJ", "Cenario": "Forecast" }, "value": 910000 },
+      { "members": { "Conta": "Despesa", "Filial": "SP", "Cenario": "Actual" }, "value": -640000 },
+      { "members": { "Conta": "Despesa", "Filial": "SP", "Cenario": "Forecast" }, "value": -600000 },
+      { "members": { "Conta": "Despesa", "Filial": "RJ", "Cenario": "Actual" }, "value": null },
+      { "members": { "Conta": "Despesa", "Filial": "RJ", "Cenario": "Forecast" }, "value": -410000 }
+    ]
+  }
+}

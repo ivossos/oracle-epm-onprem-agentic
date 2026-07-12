@@ -1,0 +1,36 @@
+{
+  "name": "oracle-epm-agentic-services",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Anthropic-native agentic services for Oracle Cloud EPM (Planning/FCCS) with a thin, typed MCP tool layer. Mock-first.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "packages/*",
+    "servers-as-code",
+    "mcp/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "evals": "vitest run apps/claude-agent/src/evals",
+    "mcp:core": "tsx mcp/oracle-epm-core/src/index.ts",
+    "mcp:planning": "tsx mcp/planning-ops/src/index.ts",
+    "mcp:fccs": "tsx mcp/fccs-close/src/index.ts",
+    "demo": "tsx apps/claude-agent/src/orchestrator.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "zod": "^3.24.1"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "@epm/mcp-oracle-epm-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": { "mcp-oracle-epm-core": "src/index.ts" },
+  "dependencies": {
+    "@epm/core-client": "*",
+    "@epm/servers-as-code": "*",
+    "@epm/claude-agent": "*",
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "zod": "^3.24.1"
+  }
+}

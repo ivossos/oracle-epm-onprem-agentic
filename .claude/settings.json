@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "mcp__oracle-epm-core__epm_config",
+      "mcp__oracle-epm-core__epm_ping",
+      "mcp__oracle-epm-core__epm_list_applications",
+      "mcp__oracle-epm-core__epm_list_job_definitions",
+      "mcp__oracle-epm-core__epm_get_job_status",
+      "mcp__planning-ops__planning_export_data_slice",
+      "mcp__planning-ops__planning_variance_snapshot",
+      "mcp__planning-ops__planning_get_substitution_variables",
+      "mcp__fccs-close__fccs_close_readiness_report",
+      "mcp__fccs-close__fccs_validate_metadata",
+      "mcp__fccs-close__fccs_retrieve_journals",
+      "mcp__fccs-close__fccs_intercompany_matching_report"
+    ],
+    "ask": [
+      "mcp__oracle-epm-core__epm_execute_job"
+    ],
+    "deny": []
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "mcp__.*__(.*execute_job|.*post_journal|.*clear_data|.*copy_data|.*import_.*|.*refresh_cube|.*update_substitution_variable|.*run_business_rule|.*automate_run)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/pre-write-guard.mjs"
+          }
+        ]
+      }
+    ]
+  }
+}
