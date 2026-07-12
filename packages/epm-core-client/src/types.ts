@@ -243,3 +243,76 @@ export interface MetadataRisk {
   message: string;
 }
 
+// ---- Security audit ----
+
+export interface RoleAssignment {
+  user: string;
+  displayName: string;
+  role: string;
+  application: string;
+}
+
+export interface UserAccess {
+  user: string;
+  active: boolean;
+  lastLogin: string;
+  mfaEnabled: boolean;
+}
+
+export interface LoginRecord {
+  user: string;
+  timestamp: string;
+  success: boolean;
+  ip: string;
+}
+
+export interface GroupAssignment {
+  group: string;
+  members: string[];
+}
+
+export interface AccessSnapshot {
+  snapshotId: string;
+  capturedAt: string;
+  assignments: { user: string; role: string }[];
+}
+
+export type AccessChangeKind = "GRANTED" | "REVOKED" | "ROLE_CHANGED";
+
+export interface AccessChange {
+  kind: AccessChangeKind;
+  user: string;
+  from?: string;
+  to?: string;
+}
+
+// ---- EPM Automate wrapper ----
+
+export interface AutomateCommandParam {
+  name: string;
+  required: boolean;
+}
+
+export interface AutomateCommandSpec {
+  command: string;
+  description: string;
+  mutating: boolean;
+  params: AutomateCommandParam[];
+}
+
+export interface AutomateRunbook {
+  runbookId: string;
+  name: string;
+  lastRun: string;
+  lastStatus: JobStatusCode;
+  commands: string[];
+}
+
+export interface AutomateResult {
+  command: string;
+  status: JobStatusCode;
+  output: string;
+  artifactPath?: string;
+  elapsedMs: number;
+}
+

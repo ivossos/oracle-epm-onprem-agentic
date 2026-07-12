@@ -4,10 +4,10 @@ Anthropic-native agentic services for **Oracle Cloud EPM (Planning / FCCS)**
 built on a thin, typed MCP tool layer. **Mock-first**: every demo, eval, and
 tool runs with zero Oracle credentials until you flip `EPM_MODE=live`.
 
-> Status: `0.2.0` — P0 + P1 scaffold. Core, Planning read, FCCS close read,
-> Data Integration watchtower, and Metadata governance tools; six subagents,
-> four skills, approval/write guards, and 19 evals are in place. Live-mode REST
-> transport (Basic/OAuth) is the next milestone.
+> Status: `0.3.0` — P0 + P1 + P2 scaffold. Seven MCP servers (core, planning,
+> fccs-close, data-integration, metadata, security-audit, epm-automate-wrapper);
+> eight subagents, six skills, approval/write guards, and 29 evals are in place.
+> Live-mode REST transport (Basic/OAuth) is the next milestone.
 
 ## Why this shape
 
@@ -34,9 +34,11 @@ mcp/planning-ops/           Planning MCP server
 mcp/fccs-close/             FCCS close MCP server
 mcp/data-integration-watchtower/  Data Integration / Data Management MCP server
 mcp/metadata-governance/    Metadata snapshot / diff / risk MCP server
+mcp/security-audit/         Security & access reporting MCP server (read-only)
+mcp/epm-automate-wrapper/   Allowlisted EPM Automate MCP server (no arbitrary shell)
 apps/claude-agent/          Orchestrator, policies, evals
 .claude/                    agents/, skills/, hooks/, settings.json
-fixtures/                   mock-planning/, mock-fccs/, mock-data-integration/, mock-metadata/
+fixtures/                   mock-planning/, mock-fccs/, mock-data-integration/, mock-metadata/, mock-security/, mock-automate/
 docs/                       api-mapping.md, approval-model.md
 ```
 
@@ -57,6 +59,8 @@ npm run mcp:planning     # planning-ops
 npm run mcp:fccs         # fccs-close
 npm run mcp:di           # data-integration-watchtower
 npm run mcp:metadata     # metadata-governance
+npm run mcp:security     # security-audit
+npm run mcp:automate     # epm-automate-wrapper
 ```
 
 Point a Claude Code / MCP client at these via stdio. The default profile in

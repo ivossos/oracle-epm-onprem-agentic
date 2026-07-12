@@ -2,7 +2,7 @@
 
 | Document | |
 | --- | --- |
-| **Version** | 0.2.0 |
+| **Version** | 0.3.0 |
 | **Date** | 2026-07-12 |
 | **Author** | Henry (agent) for Ioannis Vossos |
 | **Status** | Draft — mock-first scaffold |
@@ -14,6 +14,7 @@
 | --- | --- | --- | --- |
 | 0.1.0 | 2026-07-12 | Henry | Initial P0 mapping (core, planning, fccs) |
 | 0.2.0 | 2026-07-12 | Henry | P1 packs (data-integration-watchtower, metadata-governance) |
+| 0.3.0 | 2026-07-12 | Henry | P2 packs (security-audit, epm-automate-wrapper) |
 
 ---
 
@@ -69,6 +70,27 @@ Live-mode transport is not yet implemented; the client throws a clear
 | `metadata_compare_snapshots` | derived (two snapshots) | no |
 | `metadata_find_risks` | derived (outline scan) | no |
 | `metadata_member_impact_analysis` | derived (outline scan) | no |
+
+## security-audit
+
+| MCP tool | Oracle REST | Mutating |
+| --- | --- | --- |
+| `security_role_assignment_report` | Access Control role assignments | no |
+| `security_user_access_report` | user list + login/MFA | no |
+| `security_invalid_login_report` | audit / login records | no |
+| `security_group_assignment_audit` | Access Control groups | no |
+| `security_compare_access_snapshots` | derived (two snapshots) | no |
+
+## epm-automate-wrapper
+
+Allowlisted only — no arbitrary shell. Mutating commands require an approval packet.
+
+| MCP tool | EPM Automate | Mutating |
+| --- | --- | --- |
+| `automate_list_commands` | (allowlist) | no |
+| `automate_runbook_status` | (local runbook state) | no |
+| `automate_run_approved_command` | `downloadSnapshot` / `listFiles` | no |
+| `automate_run_approved_command` | `runDailyMaintenance` / `uploadFile` / `replay` | **YES** |
 
 ## Primary sources
 

@@ -23,6 +23,8 @@
     "mcp:fccs": "tsx mcp/fccs-close/src/index.ts",
     "mcp:di": "tsx mcp/data-integration-watchtower/src/index.ts",
     "mcp:metadata": "tsx mcp/metadata-governance/src/index.ts",
+    "mcp:security": "tsx mcp/security-audit/src/index.ts",
+    "mcp:automate": "tsx mcp/epm-automate-wrapper/src/index.ts",
     "demo": "tsx apps/claude-agent/src/orchestrator.ts"
   },
   "devDependencies": {

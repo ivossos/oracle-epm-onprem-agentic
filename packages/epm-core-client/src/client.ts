@@ -3,9 +3,14 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import type {
   Application,
+  AccessSnapshot,
+  AutomateCommandSpec,
+  AutomateResult,
+  AutomateRunbook,
   DataSlice,
   EpmClientConfig,
   EpmFile,
+  GroupAssignment,
   IntercompanyMatch,
   Integration,
   IntegrationJob,
@@ -13,11 +18,14 @@ import type {
   JobDefinition,
   JobResult,
   JobStatusCode,
+  LoginRecord,
   Mapping,
   MetadataSnapshot,
   MetadataValidationResult,
   Pipeline,
   PovLock,
+  RoleAssignment,
+  UserAccess,
 } from "./types.js";
 import { loadConfig } from "./config.js";
 
@@ -54,6 +62,19 @@ interface DataIntegrationFixture {
 
 interface MetadataFixture {
   snapshots: Record<string, MetadataSnapshot>;
+}
+
+interface SecurityFixture {
+  roleAssignments: RoleAssignment[];
+  userAccess: UserAccess[];
+  loginRecords: LoginRecord[];
+  groupAssignments: GroupAssignment[];
+  accessSnapshots: Record<string, AccessSnapshot>;
+}
+
+interface AutomateFixture {
+  allowedCommands: AutomateCommandSpec[];
+  runbooks: AutomateRunbook[];
 }
 
 /**
@@ -213,6 +234,114 @@ export class EpmClient {
       return snap;
     }
     return this.liveNotImplemented("getMetadataSnapshot");
+  }
+
+  // ---- Security audit (read) ----
+
+  async listRoleAssignments(): Promise<RoleAssignment[]> {
+    if (this.isMock) {
+      return readFixture<SecurityFixture>("mock-security/security.json")
+        .roleAssignments;
+    }
+    return this.liveNotImplemented("listRoleAssignments");
+  }
+
+  async listUserAccess(): Promise<UserAccess[]> {
+    if (this.isMock) {
+      return readFixture<SecurityFixture>("mock-security/security.json")
+        .userAccess;
+    }
+    return this.liveNotImplemented("listUserAccess");
+  }
+
+  async listLoginRecords(): Promise<LoginRecord[]> {
+    if (this.isMock) {
+      return readFixture<SecurityFixture>("mock-security/security.json")
+        .loginRecords;
+    }
+    return this.liveNotImplemented("listLoginRecords");
+  }
+
+  async listGroupAssignments(): Promise<GroupAssignment[]> {
+    if (this.isMock) {
+      return readFixture<SecurityFixture>("mock-security/security.json")
+        .groupAssignments;
+    }
+    return this.liveNotImplemented("listGroupAssignments");
+  }
+
+  async getAccessSnapshot(which: string): Promise<AccessSnapshot> {
+    if (this.isMock) {
+      const snap = readFixture<SecurityFixture>("mock-security/security.json")
+        .accessSnapshots[which];
+      if (!snap) {
+        throw new Error(`Unknown access snapshot '${which}' (try 'baseline' | 'current')`);
+      }
+      return snap;
+    }
+    return this.liveNotImplemented("getAccessSnapshot");
+  }
+
+  // ---- EPM Automate wrapper (allowlisted) ----
+
+  async listAutomateCommands(): Promise<AutomateCommandSpec[]> {
+    if (this.isMock) {
+      return readFixture<AutomateFixture>("mock-automate/automate.json")
+        .allowedCommands;
+    }
+    return this.liveNotImplemented("listAutomateCommands");
+  }
+
+  async listAutomateRunbooks(): Promise<AutomateRunbook[]> {
+    if (this.isMock) {
+      return readFixture<AutomateFixture>("mock-automate/automate.json").runbooks;
+    }
+    return this.liveNotImplemented("listAutomateRunbooks");
+  }
+
+  /**
+   * Runs an ALLOWLISTED EPM Automate command. No arbitrary shell: the command
+   * must exist in the fixture allowlist, required params must be present, and
+   * any mutating command requires an approvalPacketId.
+   */
+  async runAutomateCommand(args: {
+    command: string;
+    params: Record<string, string>;
+    approvalPacketId?: string;
+  }): Promise<AutomateResult> {
+    const allow = await this.listAutomateCommands();
+    const spec = allow.find((c) => c.command === args.command);
+    if (!spec) {
+      throw new Error(
+        `runAutomateCommand refused: '${args.command}' is not on the allowlist. ` +
+          `Allowed: ${allow.map((c) => c.command).join(", ")}`
+      );
+    }
+    for (const p of spec.params) {
+      if (p.required && !args.params[p.name]) {
+        throw new Error(
+          `runAutomateCommand('${args.command}') refused: missing required param '${p.name}'`
+        );
+      }
+    }
+    if (spec.mutating && !args.approvalPacketId) {
+      throw new Error(
+        `runAutomateCommand('${args.command}') refused: mutating command requires approvalPacketId`
+      );
+    }
+    const start = Date.now();
+    if (this.isMock) {
+      return {
+        command: args.command,
+        status: "COMPLETED",
+        output: `Mock EPM Automate: ${args.command} ${JSON.stringify(args.params)}`,
+        artifactPath: spec.mutating
+          ? `artifacts/automate/${args.command}.log`
+          : undefined,
+        elapsedMs: Date.now() - start,
+      };
+    }
+    return this.liveNotImplemented("runAutomateCommand");
   }
 
   // ---- Job execution (mutating; requires approval packet) ----

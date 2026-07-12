@@ -24,10 +24,18 @@
       "mcp__metadata-governance__metadata_export_snapshot",
       "mcp__metadata-governance__metadata_compare_snapshots",
       "mcp__metadata-governance__metadata_find_risks",
-      "mcp__metadata-governance__metadata_member_impact_analysis"
+      "mcp__metadata-governance__metadata_member_impact_analysis",
+      "mcp__security-audit__security_role_assignment_report",
+      "mcp__security-audit__security_user_access_report",
+      "mcp__security-audit__security_invalid_login_report",
+      "mcp__security-audit__security_group_assignment_audit",
+      "mcp__security-audit__security_compare_access_snapshots",
+      "mcp__epm-automate-wrapper__automate_list_commands",
+      "mcp__epm-automate-wrapper__automate_runbook_status"
     ],
     "ask": [
-      "mcp__oracle-epm-core__epm_execute_job"
+      "mcp__oracle-epm-core__epm_execute_job",
+      "mcp__epm-automate-wrapper__automate_run_approved_command"
     ],
     "deny": []
   },

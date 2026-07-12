@@ -1,0 +1,50 @@
+{
+  "allowedCommands": [
+    {
+      "command": "downloadSnapshot",
+      "description": "Download an existing Artifact Snapshot from the pod to the local workspace.",
+      "mutating": false,
+      "params": [{ "name": "snapshotName", "required": true }]
+    },
+    {
+      "command": "listFiles",
+      "description": "List files in the pod inbox/outbox.",
+      "mutating": false,
+      "params": []
+    },
+    {
+      "command": "runDailyMaintenance",
+      "description": "Run the scheduled Daily Maintenance snapshot (backup).",
+      "mutating": true,
+      "params": []
+    },
+    {
+      "command": "uploadFile",
+      "description": "Upload a local file to the pod inbox.",
+      "mutating": true,
+      "params": [{ "name": "fileName", "required": true }]
+    },
+    {
+      "command": "replay",
+      "description": "Replay a recorded Smart View / REST load.",
+      "mutating": true,
+      "params": [{ "name": "loadName", "required": true }]
+    }
+  ],
+  "runbooks": [
+    {
+      "runbookId": "RB_DAILY_BACKUP",
+      "name": "Daily Backup",
+      "lastRun": "2026-07-12T01:00:00Z",
+      "lastStatus": "COMPLETED",
+      "commands": ["runDailyMaintenance", "downloadSnapshot"]
+    },
+    {
+      "runbookId": "RB_SV_REPLAY",
+      "name": "Smart View Load Replay",
+      "lastRun": "2026-07-10T14:30:00Z",
+      "lastStatus": "COMPLETED_WITH_ERRORS",
+      "commands": ["replay"]
+    }
+  ]
+}
