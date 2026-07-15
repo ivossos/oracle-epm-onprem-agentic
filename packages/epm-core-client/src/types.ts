@@ -6,11 +6,15 @@
 
 export type EpmMode = "mock" | "live";
 
+/** Deployment topology: cloud-hosted or on-premises. */
+export type EpmDeployment = "cloud" | "onprem";
+
 /** How the client authenticates against a live pod. */
 export type AuthKind = "basic" | "oauth";
 
 export interface EpmClientConfig {
   mode: EpmMode;
+  deployment: EpmDeployment;
   baseUrl?: string;
   identityDomain?: string;
   apiVersion: string;
@@ -23,6 +27,13 @@ export interface EpmClientConfig {
     clientId?: string;
     clientSecret?: string;
     scope?: string;
+  };
+  /** On-premises specific config. */
+  onprem?: {
+    serverHostname?: string;
+    serverPort?: number;
+    useHttps?: boolean;
+    verifySslCert?: boolean;
   };
 }
 

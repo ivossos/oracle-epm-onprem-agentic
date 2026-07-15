@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import https from "node:https";
 import type {
   Application,
   AccessSnapshot,
@@ -36,6 +37,47 @@ const REPO_ROOT = resolve(__dirname, "../../..");
 function readFixture<T>(relPath: string): T {
   const full = resolve(REPO_ROOT, "fixtures", relPath);
   return JSON.parse(readFileSync(full, "utf8")) as T;
+}
+
+/**
+ * Creates an HTTPS agent for on-prem deployments with optional self-signed cert handling.
+ * For on-prem Oracle EPM running on internal CAs or self-signed certificates.
+ */
+function createHttpsAgent(config: EpmClientConfig): https.Agent {
+  return new https.Agent({
+    rejectUnauthorized: config.onprem?.verifySslCert ?? true,
+  });
+}
+
+/**
+ * Builds the Authorization header for Basic Auth.
+ * On-prem Oracle EPM 11.1.2.4 uses Basic Auth exclusively.
+ */
+function buildBasicAuthHeader(username: string, password: string): string {
+  const credentials = Buffer.from(`${username}:${password}`).toString("base64");
+  return `Basic ${credentials}`;
+}
+
+/**
+ * Builds request headers for Oracle EPM REST API calls.
+ * On-prem: Basic Auth only. Cloud: OAuth token (if available).
+ */
+function buildRequestHeaders(
+  config: EpmClientConfig,
+  authToken?: string
+): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
+
+  if (config.deployment === "onprem" && config.username && config.password) {
+    headers.Authorization = buildBasicAuthHeader(config.username, config.password);
+  } else if (authToken) {
+    headers.Authorization = `Bearer ${authToken}`;
+  }
+
+  return headers;
 }
 
 interface PlanningFixture {
@@ -397,9 +439,12 @@ export class EpmClient {
   }
 
   private liveNotImplemented(method: string): never {
+    const deploymentHint =
+      this.config.deployment === "onprem"
+        ? `On-prem Oracle EPM 11.1.2.4 endpoint: implement ${this.config.auth} transport for this method.`
+        : `Cloud EPM endpoint: implement ${this.config.auth} transport for this method.`;
     throw new Error(
-      `EpmClient.${method} live-mode REST call not implemented yet. ` +
-        `Set EPM_MODE=mock, or implement the ${this.config.auth} transport.`
+      `EpmClient.${method} live-mode REST call not implemented yet. ${deploymentHint}`
     );
   }
 }

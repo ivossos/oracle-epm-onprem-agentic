@@ -1,17 +1,35 @@
-import type { EpmClientConfig, EpmMode, AuthKind } from "./types.js";
+import type { EpmClientConfig, EpmMode, AuthKind, EpmDeployment } from "./types.js";
 
 /**
  * Loads client config from environment variables.
  * Defaults to mock mode so demos and evals run with zero credentials.
  * Never throws on missing live credentials in mock mode.
+ *
+ * On-prem EPM 11.1.2.4 uses Basic Auth only (no OAuth).
+ * Cloud EPM supports both Basic Auth and OAuth.
  */
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): EpmClientConfig {
   const mode = (env.EPM_MODE ?? "mock").toLowerCase() as EpmMode;
-  const auth: AuthKind = env.EPM_OAUTH_TOKEN_URL ? "oauth" : "basic";
+  const deployment = (env.EPM_DEPLOYMENT ?? "cloud").toLowerCase() as EpmDeployment;
+
+  // On-prem always uses Basic Auth; Cloud defaults to OAuth if token URL provided
+  const auth: AuthKind = deployment === "onprem" || !env.EPM_OAUTH_TOKEN_URL ? "basic" : "oauth";
+
+  // Build base URL
+  let baseUrl: string | undefined;
+  if (deployment === "onprem") {
+    const hostname = env.EPM_SERVER_HOSTNAME;
+    const port = env.EPM_SERVER_PORT ? parseInt(env.EPM_SERVER_PORT) : 8080;
+    const useHttps = env.EPM_USE_HTTPS === "true";
+    baseUrl = `${useHttps ? "https" : "http"}://${hostname}:${port}`;
+  } else {
+    baseUrl = env.EPM_BASE_URL || undefined;
+  }
 
   const config: EpmClientConfig = {
     mode: mode === "live" ? "live" : "mock",
-    baseUrl: env.EPM_BASE_URL || undefined,
+    deployment,
+    baseUrl,
     identityDomain: env.EPM_IDENTITY_DOMAIN || undefined,
     apiVersion: env.EPM_API_VERSION || "v3",
     auth,
@@ -23,6 +41,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): EpmClientConfi
       clientSecret: env.EPM_OAUTH_CLIENT_SECRET || undefined,
       scope: env.EPM_OAUTH_SCOPE || undefined,
     },
+    onprem: {
+      serverHostname: env.EPM_SERVER_HOSTNAME || undefined,
+      serverPort: env.EPM_SERVER_PORT ? parseInt(env.EPM_SERVER_PORT) : 8080,
+      useHttps: env.EPM_USE_HTTPS === "true",
+      verifySslCert: env.EPM_VERIFY_SSL_CERT !== "false",
+    },
   };
 
   if (config.mode === "live") {
@@ -33,7 +57,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): EpmClientConfi
 
 function assertLiveConfig(config: EpmClientConfig): void {
   if (!config.baseUrl) {
-    throw new Error("EPM_MODE=live requires EPM_BASE_URL");
+    throw new Error(
+      config.deployment === "onprem"
+        ? "EPM_MODE=live with on-prem deployment requires EPM_SERVER_HOSTNAME"
+        : "EPM_MODE=live requires EPM_BASE_URL"
+    );
   }
   if (config.auth === "basic" && (!config.username || !config.password)) {
     throw new Error(
@@ -49,6 +77,7 @@ function assertLiveConfig(config: EpmClientConfig): void {
 export function redactConfig(config: EpmClientConfig): Record<string, unknown> {
   return {
     mode: config.mode,
+    deployment: config.deployment,
     baseUrl: config.baseUrl ?? null,
     identityDomain: config.identityDomain ?? null,
     apiVersion: config.apiVersion,
@@ -58,6 +87,12 @@ export function redactConfig(config: EpmClientConfig): Record<string, unknown> {
     oauth: config.oauth?.clientId
       ? { clientId: mask(config.oauth.clientId), configured: true }
       : { configured: false },
+    onprem: config.deployment === "onprem" ? {
+      serverHostname: config.onprem?.serverHostname ?? null,
+      serverPort: config.onprem?.serverPort ?? null,
+      useHttps: config.onprem?.useHttps ?? false,
+      verifySslCert: config.onprem?.verifySslCert ?? true,
+    } : undefined,
   };
 }
 
