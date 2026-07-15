@@ -327,3 +327,69 @@ export interface AutomateResult {
   elapsedMs: number;
 }
 
+// ---- Hyperion Financial Management (HFM) ----
+
+export interface HfmEntity {
+  name: string;
+  parent: string | null;
+  description?: string;
+  active: boolean;
+}
+
+export interface HfmConsolidationStatus {
+  entity: string;
+  period: string;
+  scenario: string;
+  status: "Not Started" | "In Progress" | "Completed" | "Needs Review" | "Submitted";
+  consolidationDate?: string;
+  completionPercentage: number;
+  owner?: string;
+}
+
+export interface HfmIcTransaction {
+  id: string;
+  sender: string;
+  receiver: string;
+  amount: number;
+  status: "Pending" | "Matched" | "Rejected" | "Confirmed";
+  description?: string;
+  createdDate: string;
+}
+
+export interface HfmBalancingStatus {
+  entity: string;
+  period: string;
+  scenario: string;
+  totalDebits: number;
+  totalCredits: number;
+  difference: number;
+  balanced: boolean;
+  lastBalancedDate?: string;
+}
+
+export interface HfmConsolidationReport {
+  entities: number;
+  consolidated: number;
+  pending: number;
+  submitted: number;
+  completionPercentage: number;
+  byStatus: Record<string, number>;
+  issues: string[];
+}
+
+export interface HfmCurrencyConversion {
+  sourceCurrency: string;
+  targetCurrency: string;
+  rate: number;
+  effectiveDate: string;
+  rateType: "Spot" | "Corporate" | "Historical";
+}
+
+export interface HfmExtractSpec {
+  name: string;
+  description?: string;
+  dimensions: Record<string, string[]>;
+  format: "Excel" | "CSV" | "XML";
+  lastRun?: string;
+}
+

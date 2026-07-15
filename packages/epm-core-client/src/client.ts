@@ -12,6 +12,13 @@ import type {
   EpmClientConfig,
   EpmFile,
   GroupAssignment,
+  HfmEntity,
+  HfmConsolidationStatus,
+  HfmIcTransaction,
+  HfmBalancingStatus,
+  HfmConsolidationReport,
+  HfmCurrencyConversion,
+  HfmExtractSpec,
   IntercompanyMatch,
   Integration,
   IntegrationJob,
@@ -117,6 +124,16 @@ interface SecurityFixture {
 interface AutomateFixture {
   allowedCommands: AutomateCommandSpec[];
   runbooks: AutomateRunbook[];
+}
+
+interface HfmFixture {
+  entities: HfmEntity[];
+  consolidationStatus: HfmConsolidationStatus[];
+  icTransactions: HfmIcTransaction[];
+  balancingStatus: HfmBalancingStatus[];
+  consolidationReport: HfmConsolidationReport;
+  currencyConversions: HfmCurrencyConversion[];
+  extracts: HfmExtractSpec[];
 }
 
 /**
@@ -322,6 +339,69 @@ export class EpmClient {
       return snap;
     }
     return this.liveNotImplemented("getAccessSnapshot");
+  }
+
+  // ---- Hyperion Financial Management (HFM) (read) ----
+
+  async listHfmEntities(_app: string): Promise<HfmEntity[]> {
+    if (this.isMock) {
+      return readFixture<HfmFixture>("mock-hfm/hfm.json").entities;
+    }
+    return this.liveNotImplemented("listHfmEntities");
+  }
+
+  async getConsolidationStatus(
+    _app: string,
+    _filter?: { period?: string; scenario?: string }
+  ): Promise<HfmConsolidationStatus[]> {
+    if (this.isMock) {
+      return readFixture<HfmFixture>("mock-hfm/hfm.json").consolidationStatus;
+    }
+    return this.liveNotImplemented("getConsolidationStatus");
+  }
+
+  async listIntercompanyTransactions(
+    _app: string,
+    _filter?: { status?: string }
+  ): Promise<HfmIcTransaction[]> {
+    if (this.isMock) {
+      return readFixture<HfmFixture>("mock-hfm/hfm.json").icTransactions;
+    }
+    return this.liveNotImplemented("listIntercompanyTransactions");
+  }
+
+  async getBalancingStatus(
+    _app: string,
+    _filter?: { entity?: string; period?: string }
+  ): Promise<HfmBalancingStatus[]> {
+    if (this.isMock) {
+      return readFixture<HfmFixture>("mock-hfm/hfm.json").balancingStatus;
+    }
+    return this.liveNotImplemented("getBalancingStatus");
+  }
+
+  async getConsolidationReport(
+    _app: string,
+    _period: string
+  ): Promise<HfmConsolidationReport> {
+    if (this.isMock) {
+      return readFixture<HfmFixture>("mock-hfm/hfm.json").consolidationReport;
+    }
+    return this.liveNotImplemented("getConsolidationReport");
+  }
+
+  async listCurrencyConversions(_app: string): Promise<HfmCurrencyConversion[]> {
+    if (this.isMock) {
+      return readFixture<HfmFixture>("mock-hfm/hfm.json").currencyConversions;
+    }
+    return this.liveNotImplemented("listCurrencyConversions");
+  }
+
+  async listHfmExtracts(_app: string): Promise<HfmExtractSpec[]> {
+    if (this.isMock) {
+      return readFixture<HfmFixture>("mock-hfm/hfm.json").extracts;
+    }
+    return this.liveNotImplemented("listHfmExtracts");
   }
 
   // ---- EPM Automate wrapper (allowlisted) ----

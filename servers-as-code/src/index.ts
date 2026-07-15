@@ -5,4 +5,5 @@ export * as dataIntegration from "./data-integration.js";
 export * as metadata from "./metadata-governance.js";
 export * as security from "./security-audit.js";
 export * as automate from "./epm-automate.js";
+export * as hfm from "./hfm.js";
 export { boundAndPersist } from "./_util.js";

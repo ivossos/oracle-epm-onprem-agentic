@@ -1,14 +1,14 @@
 # Oracle EPM Agentic Services
 
-Anthropic-native agentic services for **Oracle Cloud EPM (Planning / FCCS)** and **on-premises Oracle EPM 11.1.2.4+**
+Anthropic-native agentic services for **Oracle Cloud EPM (Planning / FCCS / HFM)** and **on-premises Oracle EPM 11.1.2.4+**
 built on a thin, typed MCP tool layer. **Mock-first**: every demo, eval, and
 tool runs with zero Oracle credentials until you flip `EPM_MODE=live`.
 
-> Status: `0.4.0` — P0 + P1 + P2 scaffold + on-prem support. Seven MCP servers (core, planning,
-> fccs-close, data-integration, metadata, security-audit, epm-automate-wrapper);
+> Status: `0.5.0` — P0 + P1 + P2 scaffold + on-prem support + HFM. Eight MCP servers (core, planning,
+> fccs-close, hfm, data-integration, metadata, security-audit, epm-automate-wrapper);
 > eight subagents, six skills, approval/write guards, and 29 evals are in place.
-> On-prem EPM 11.1.2.4 support added (Basic Auth, self-signed cert handling). Live-mode REST transport
-> (Basic/OAuth) to follow.
+> On-prem EPM 11.1.2.4 support added (Basic Auth, self-signed cert handling).
+> HFM consolidation workflows added. Live-mode REST transport (Basic/OAuth) to follow.
 
 ## Why this shape
 
@@ -33,13 +33,14 @@ servers-as-code/            Typed business fns (code-execution-with-MCP pattern)
 mcp/oracle-epm-core/        Core MCP server (stdio)
 mcp/planning-ops/           Planning MCP server
 mcp/fccs-close/             FCCS close MCP server
+mcp/hfm/                    HFM consolidation MCP server
 mcp/data-integration-watchtower/  Data Integration / Data Management MCP server
 mcp/metadata-governance/    Metadata snapshot / diff / risk MCP server
 mcp/security-audit/         Security & access reporting MCP server (read-only)
 mcp/epm-automate-wrapper/   Allowlisted EPM Automate MCP server (no arbitrary shell)
 apps/claude-agent/          Orchestrator, policies, evals
 .claude/                    agents/, skills/, hooks/, settings.json
-fixtures/                   mock-planning/, mock-fccs/, mock-data-integration/, mock-metadata/, mock-security/, mock-automate/
+fixtures/                   mock-planning/, mock-fccs/, mock-hfm/, mock-data-integration/, mock-metadata/, mock-security/, mock-automate/
 docs/                       api-mapping.md, approval-model.md, onprem-setup.md
 ```
 
@@ -87,6 +88,7 @@ npm run demo             # runnable mock orchestrator demo (no creds)
 npm run mcp:core         # oracle-epm-core
 npm run mcp:planning     # planning-ops
 npm run mcp:fccs         # fccs-close
+npm run mcp:hfm          # hfm (consolidation)
 npm run mcp:di           # data-integration-watchtower
 npm run mcp:metadata     # metadata-governance
 npm run mcp:security     # security-audit

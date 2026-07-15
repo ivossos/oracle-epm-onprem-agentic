@@ -1,0 +1,208 @@
+{
+  "entities": [
+    {
+      "name": "USA",
+      "parent": null,
+      "description": "United States",
+      "active": true
+    },
+    {
+      "name": "CANADA",
+      "parent": null,
+      "description": "Canada",
+      "active": true
+    },
+    {
+      "name": "USA_EAST",
+      "parent": "USA",
+      "description": "USA - East Region",
+      "active": true
+    },
+    {
+      "name": "USA_WEST",
+      "parent": "USA",
+      "description": "USA - West Region",
+      "active": true
+    }
+  ],
+  "consolidationStatus": [
+    {
+      "entity": "USA",
+      "period": "Jun",
+      "scenario": "Actual",
+      "status": "Completed",
+      "consolidationDate": "2026-07-14T10:30:00Z",
+      "completionPercentage": 100,
+      "owner": "Finance Team"
+    },
+    {
+      "entity": "CANADA",
+      "period": "Jun",
+      "scenario": "Actual",
+      "status": "In Progress",
+      "completionPercentage": 75,
+      "owner": "Regional Controller"
+    },
+    {
+      "entity": "USA_EAST",
+      "period": "Jun",
+      "scenario": "Actual",
+      "status": "Completed",
+      "consolidationDate": "2026-07-13T14:15:00Z",
+      "completionPercentage": 100,
+      "owner": "East Regional Finance"
+    },
+    {
+      "entity": "USA_WEST",
+      "period": "Jun",
+      "scenario": "Actual",
+      "status": "Needs Review",
+      "completionPercentage": 50,
+      "owner": "West Regional Finance"
+    }
+  ],
+  "icTransactions": [
+    {
+      "id": "IC001",
+      "sender": "USA_EAST",
+      "receiver": "USA_WEST",
+      "amount": 250000,
+      "status": "Matched",
+      "description": "Inter-company transfer for inventory",
+      "createdDate": "2026-07-12T08:00:00Z"
+    },
+    {
+      "id": "IC002",
+      "sender": "USA_WEST",
+      "receiver": "CANADA",
+      "amount": 150000,
+      "status": "Pending",
+      "description": "Service fees for Q2",
+      "createdDate": "2026-07-14T09:30:00Z"
+    },
+    {
+      "id": "IC003",
+      "sender": "CANADA",
+      "receiver": "USA_EAST",
+      "amount": 75000,
+      "status": "Matched",
+      "description": "Rental income recharge",
+      "createdDate": "2026-07-10T11:20:00Z"
+    }
+  ],
+  "balancingStatus": [
+    {
+      "entity": "USA",
+      "period": "Jun",
+      "scenario": "Actual",
+      "totalDebits": 5000000,
+      "totalCredits": 5000000,
+      "difference": 0,
+      "balanced": true,
+      "lastBalancedDate": "2026-07-14T10:30:00Z"
+    },
+    {
+      "entity": "CANADA",
+      "period": "Jun",
+      "scenario": "Actual",
+      "totalDebits": 2500000,
+      "totalCredits": 2499950,
+      "difference": 50,
+      "balanced": false
+    },
+    {
+      "entity": "USA_EAST",
+      "period": "Jun",
+      "scenario": "Actual",
+      "totalDebits": 3000000,
+      "totalCredits": 3000000,
+      "difference": 0,
+      "balanced": true,
+      "lastBalancedDate": "2026-07-13T14:15:00Z"
+    },
+    {
+      "entity": "USA_WEST",
+      "period": "Jun",
+      "scenario": "Actual",
+      "totalDebits": 2000000,
+      "totalCredits": 2000000,
+      "difference": 0,
+      "balanced": true,
+      "lastBalancedDate": "2026-07-12T16:45:00Z"
+    }
+  ],
+  "consolidationReport": {
+    "entities": 4,
+    "consolidated": 3,
+    "pending": 1,
+    "submitted": 0,
+    "completionPercentage": 81,
+    "byStatus": {
+      "Completed": 2,
+      "In Progress": 1,
+      "Needs Review": 1
+    },
+    "issues": [
+      "USA_WEST region is pending supervisor review",
+      "Inter-company transaction IC002 awaiting confirmation",
+      "CANADA entity has minor imbalance of $50"
+    ]
+  },
+  "currencyConversions": [
+    {
+      "sourceCurrency": "USD",
+      "targetCurrency": "CAD",
+      "rate": 1.36,
+      "effectiveDate": "2026-07-15",
+      "rateType": "Spot"
+    },
+    {
+      "sourceCurrency": "USD",
+      "targetCurrency": "EUR",
+      "rate": 0.92,
+      "effectiveDate": "2026-07-15",
+      "rateType": "Corporate"
+    },
+    {
+      "sourceCurrency": "USD",
+      "targetCurrency": "GBP",
+      "rate": 0.79,
+      "effectiveDate": "2026-07-15",
+      "rateType": "Corporate"
+    }
+  ],
+  "extracts": [
+    {
+      "name": "Month_End_Consolidation",
+      "description": "Monthly consolidation data export",
+      "dimensions": {
+        "Entity": ["USA", "CANADA", "USA_EAST", "USA_WEST"],
+        "Period": ["Jun"],
+        "Scenario": ["Actual"]
+      },
+      "format": "Excel",
+      "lastRun": "2026-07-14T15:30:00Z"
+    },
+    {
+      "name": "IC_Transactions",
+      "description": "Inter-company transactions",
+      "dimensions": {
+        "Sender": ["USA_EAST", "USA_WEST", "CANADA"],
+        "Receiver": ["USA_EAST", "USA_WEST", "CANADA"],
+        "Status": ["Matched", "Pending", "Rejected"]
+      },
+      "format": "CSV"
+    },
+    {
+      "name": "Balancing_Report",
+      "description": "Entity balancing and reconciliation",
+      "dimensions": {
+        "Entity": ["USA", "CANADA", "USA_EAST", "USA_WEST"],
+        "Period": ["Jun"],
+        "Account": ["*"]
+      },
+      "format": "XML",
+      "lastRun": "2026-07-12T10:00:00Z"
+    }
+  ]
+}
