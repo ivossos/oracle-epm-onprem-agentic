@@ -1,13 +1,14 @@
 # Oracle EPM Agentic Services
 
-Anthropic-native agentic services for **Oracle Cloud EPM (Planning / FCCS)**
+Anthropic-native agentic services for **Oracle Cloud EPM (Planning / FCCS)** and **on-premises Oracle EPM 11.1.2.4+**
 built on a thin, typed MCP tool layer. **Mock-first**: every demo, eval, and
 tool runs with zero Oracle credentials until you flip `EPM_MODE=live`.
 
-> Status: `0.3.0` — P0 + P1 + P2 scaffold. Seven MCP servers (core, planning,
+> Status: `0.4.0` — P0 + P1 + P2 scaffold + on-prem support. Seven MCP servers (core, planning,
 > fccs-close, data-integration, metadata, security-audit, epm-automate-wrapper);
 > eight subagents, six skills, approval/write guards, and 29 evals are in place.
-> Live-mode REST transport (Basic/OAuth) is the next milestone.
+> On-prem EPM 11.1.2.4 support added (Basic Auth, self-signed cert handling). Live-mode REST transport
+> (Basic/OAuth) to follow.
 
 ## Why this shape
 
@@ -39,8 +40,37 @@ mcp/epm-automate-wrapper/   Allowlisted EPM Automate MCP server (no arbitrary sh
 apps/claude-agent/          Orchestrator, policies, evals
 .claude/                    agents/, skills/, hooks/, settings.json
 fixtures/                   mock-planning/, mock-fccs/, mock-data-integration/, mock-metadata/, mock-security/, mock-automate/
-docs/                       api-mapping.md, approval-model.md
+docs/                       api-mapping.md, approval-model.md, onprem-setup.md
 ```
+
+## Deployment Modes
+
+### Cloud EPM (Oracle Cloud)
+
+```bash
+EPM_MODE=live
+EPM_DEPLOYMENT=cloud
+EPM_BASE_URL=https://<pod>.epm.<dc>.oraclecloud.com
+EPM_OAUTH_TOKEN_URL=...  # Recommended for production
+# Or Basic Auth if MFA not required
+EPM_USERNAME=user
+EPM_PASSWORD=pass
+```
+
+### On-Premises EPM 11.1.2.4+
+
+```bash
+EPM_MODE=live
+EPM_DEPLOYMENT=onprem
+EPM_SERVER_HOSTNAME=epm-server.internal
+EPM_SERVER_PORT=8080
+EPM_USE_HTTPS=false
+EPM_USERNAME=admin
+EPM_PASSWORD=pass
+```
+
+See **[docs/onprem-setup.md](docs/onprem-setup.md)** for detailed on-prem configuration,
+SSL handling, networking, and troubleshooting.
 
 ## Quick start
 
