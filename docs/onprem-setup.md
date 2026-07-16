@@ -195,7 +195,12 @@ Once you have credentials, set `EPM_MODE=live` and test the core server:
 EPM_MODE=live npm run mcp:core
 ```
 
-Inspect MCP output to verify API calls succeed (not yet implemented, but shows deployment context).
+`epm_list_job_definitions` and `epm_execute_job` are wired for on-prem Basic
+Auth (see `packages/epm-core-client/src/client.ts` — `onpremRequest`) and will
+issue real REST calls. This assumes the v3 JSON job-management surface (same
+as Cloud EPM) — unconfirmed against a real 11.1.2.4 server; see
+`scripts/test_onprem_planning_connection.py` if that turns out wrong. Every
+other tool still throws `liveNotImplemented`.
 
 ### 3. Agent Integration
 
