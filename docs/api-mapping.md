@@ -2,8 +2,8 @@
 
 | Document | |
 | --- | --- |
-| **Version** | 0.3.0 |
-| **Date** | 2026-07-12 |
+| **Version** | 0.3.1 |
+| **Date** | 2026-07-16 |
 | **Author** | Henry (agent) for Ioannis Vossos |
 | **Status** | Draft — mock-first scaffold |
 | **Owner** | Ioannis Vossos |
@@ -15,6 +15,7 @@
 | 0.1.0 | 2026-07-12 | Henry | Initial P0 mapping (core, planning, fccs) |
 | 0.2.0 | 2026-07-12 | Henry | P1 packs (data-integration-watchtower, metadata-governance) |
 | 0.3.0 | 2026-07-12 | Henry | P2 packs (security-audit, epm-automate-wrapper) |
+| 0.3.1 | 2026-07-16 | Claude | Corrected against Oracle docs: fixed `epm_ping` path (no `/version` suffix), noted `di_pov_lock_status` uses a different base path (`/aif/rest/V1/`), fixed EPM Automate source link |
 
 ---
 
@@ -27,7 +28,7 @@ Live-mode transport is not yet implemented; the client throws a clear
 | MCP tool | Oracle REST | Mutating |
 | --- | --- | --- |
 | `epm_config` | (local) | no |
-| `epm_ping` | `GET /interop/rest/{v}/version` | no |
+| `epm_ping` | `GET /interop/rest/{v}` | no |
 | `epm_list_applications` | Planning `GET /HyperionPlanning/rest/{v}/applications` | no |
 | `epm_list_job_definitions` | `GET .../jobdefinitions` | no |
 | `epm_get_job_status` | `GET .../jobs/{jobId}` | no |
@@ -60,7 +61,7 @@ Live-mode transport is not yet implemented; the client throws a clear
 | `di_failed_load_summary` | derived from job status | no |
 | `di_diagnose_failures` | job status + POV locks | no |
 | `di_export_mapping` | mapping export | no |
-| `di_pov_lock_status` | POV lock status | no |
+| `di_pov_lock_status` | POV lock status (`GET /aif/rest/V1/POV`, note: different base path from `/HyperionPlanning/rest/v3/`) | no |
 
 ## metadata-governance
 
@@ -99,4 +100,4 @@ Allowlisted only — no arbitrary shell. Mutating commands require an approval p
 - Rules: https://docs.oracle.com/en/cloud/saas/enterprise-performance-management-common/prest/rules.html
 - FCCS: https://docs.oracle.com/en/cloud/saas/enterprise-performance-management-common/prest/fccs_chapter_intro.html
 - Data Integration: https://docs.oracle.com/en/cloud/saas/enterprise-performance-management-common/prest/fdmee_rest_apis.html
-- EPM Automate: https://docs.oracle.com/en/cloud/saas/enterprise-performance-management-common/cepma/using_epmctl.html
+- EPM Automate: https://docs.oracle.com/en/cloud/saas/enterprise-performance-management-common/cepma/toc.htm
