@@ -26,7 +26,8 @@
     "mcp:security": "tsx mcp/security-audit/src/index.ts",
     "mcp:automate": "tsx mcp/epm-automate-wrapper/src/index.ts",
     "mcp:hfm": "tsx mcp/hfm/src/index.ts",
-    "demo": "tsx apps/claude-agent/src/orchestrator.ts"
+    "demo": "tsx apps/claude-agent/src/orchestrator.ts",
+    "monitor:variance": "tsx apps/claude-agent/src/variance-monitor.ts"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
