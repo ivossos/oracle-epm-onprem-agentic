@@ -2,6 +2,9 @@
 node_modules/
 .pnp
 .pnp.js
+.venv/
+__pycache__/
+*.pyc
 
 # Build output
 dist/
