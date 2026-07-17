@@ -68,7 +68,7 @@
         // --- DASHBOARD APP COMPONENT ---
         function OracleEpmDashboard() {
             const [messages, setMessages] = useState([
-                { role: 'assistant', text: "Hello! I am your On-Premise Oracle EPM Agent. I can run MDX queries, trigger Business Rules, or load metadata via OLU. What plan adjustments or metadata tasks do you need?" }
+                { role: 'assistant', text: "Hello! I am your On-Premise Oracle EPM Agent. I'm wired up to 8 MCP servers:\n\n- Planning — data slices, variance, substitution variables\n- Core — applications, job definitions/status, execute job\n- FCCS — close readiness, metadata validation, journals, intercompany matching\n- HFM — consolidation\n- Data Integration — pipeline inventory, failed loads, POV locks\n- Metadata Governance — snapshots, diffs, member impact risk\n- Security Audit — role/access/login reports\n- EPM Automate — allowlisted commands\n\nMutating actions (execute a job, run an automate command) require your approval before they run. What do you need?" }
             ]);
             const [input, setInput] = useState('');
             const [sessionId, setSessionId] = useState(null);
