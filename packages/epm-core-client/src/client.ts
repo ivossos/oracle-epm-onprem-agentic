@@ -10,6 +10,7 @@ import type {
   AutomateResult,
   AutomateRunbook,
   DataSlice,
+  DataSliceRow,
   EpmClientConfig,
   EpmFile,
   GroupAssignment,
@@ -113,7 +114,8 @@ function onpremRequest<T>(
   config: EpmClientConfig,
   method: "GET" | "POST",
   path: string,
-  body?: unknown
+  body?: unknown,
+  bodyEncoding: "json" | "form" = "json"
 ): Promise<T> {
   if (config.deployment !== "onprem" || config.auth !== "basic") {
     throw new Error(
@@ -128,9 +130,23 @@ function onpremRequest<T>(
 
   const useHttps = config.onprem?.useHttps ?? false;
   const url = new URL(`${config.baseUrl}${path}`);
-  const payload = body !== undefined ? JSON.stringify(body) : undefined;
   const headers = buildRequestHeaders(config);
-  if (payload !== undefined) {
+
+  let payload: string | undefined;
+  if (body !== undefined) {
+    if (bodyEncoding === "form") {
+      // On-prem 11.1.2.4 /jobs expects application/x-www-form-urlencoded
+      // (per the WADL), not the Cloud-style JSON body. Nested values (e.g. the
+      // `parameters` map) are JSON-encoded into a single form field.
+      const form = new URLSearchParams();
+      for (const [k, v] of Object.entries(body as Record<string, unknown>)) {
+        form.append(k, typeof v === "string" ? v : JSON.stringify(v));
+      }
+      payload = form.toString();
+      headers["Content-Type"] = "application/x-www-form-urlencoded";
+    } else {
+      payload = JSON.stringify(body);
+    }
     headers["Content-Length"] = Buffer.byteLength(payload).toString();
   }
 
@@ -165,6 +181,78 @@ function onpremRequest<T>(
     if (payload !== undefined) req.write(payload);
     req.end();
   });
+}
+
+/** A grid cell/header entry as returned by exportdataslice — rich object or bare member string. */
+type GridEntry =
+  | string
+  | {
+      dimensionName?: string;
+      dimName?: string;
+      name?: string;
+      memberName?: string;
+      member?: string;
+      value?: string;
+    };
+
+function gridMemberName(entry: GridEntry): string {
+  if (typeof entry === "string") return entry;
+  return entry.memberName ?? entry.member ?? entry.name ?? entry.value ?? "";
+}
+
+function gridDimName(entry: GridEntry, fallback: string): string {
+  if (typeof entry === "string") return fallback;
+  return entry.dimensionName ?? entry.dimName ?? fallback;
+}
+
+function gridValue(raw: unknown): number | null {
+  if (raw === null || raw === undefined) return null;
+  const s = String(raw).trim();
+  if (s === "" || s === "#Missing" || s === "#MISSING") return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Parses a Cloud-style `exportdataslice` grid response into a flat DataSlice.
+ *
+ * BEST-EFFORT / UNVERIFIED against a real on-prem 11.1.2.4 server (see
+ * docs/onprem-corprpt-500-issue.md). Dimension names are used when the response
+ * carries them (rich object form); otherwise members are keyed positionally
+ * (`POV1`, `ROW1`, `COL`). One DataSliceRow is emitted per (row × column) cell.
+ */
+function parseExportDataSliceGrid(res: Record<string, unknown>): DataSlice {
+  const pov: Record<string, string> = {};
+  const povArr = Array.isArray(res.pov) ? (res.pov as GridEntry[]) : [];
+  povArr.forEach((m, i) => {
+    pov[gridDimName(m, `POV${i + 1}`)] = gridMemberName(m);
+  });
+
+  // `columns` is an array of header bands; use the innermost/only band.
+  const colBands = Array.isArray(res.columns) ? (res.columns as GridEntry[][]) : [];
+  const cols: GridEntry[] = (colBands.length ? colBands[colBands.length - 1] : []) ?? [];
+
+  const rows: DataSliceRow[] = [];
+  const resRows = Array.isArray(res.rows) ? (res.rows as { headers?: GridEntry[]; data?: unknown[] }[]) : [];
+  for (const r of resRows) {
+    const headers = Array.isArray(r.headers) ? r.headers : [];
+    const rowMembers: Record<string, string> = {};
+    headers.forEach((m, i) => {
+      rowMembers[gridDimName(m, `ROW${i + 1}`)] = gridMemberName(m);
+    });
+    const data = Array.isArray(r.data) ? r.data : [];
+    if (cols.length) {
+      cols.forEach((col, ci) => {
+        rows.push({
+          members: { ...rowMembers, [gridDimName(col, "COL")]: gridMemberName(col) },
+          value: gridValue(data[ci]),
+        });
+      });
+    } else {
+      rows.push({ members: rowMembers, value: gridValue(data[0]) });
+    }
+  }
+  return { pov, rows };
 }
 
 interface PlanningFixture {
@@ -278,10 +366,24 @@ export class EpmClient {
     return this.liveNotImplemented("getSubstitutionVariables");
   }
 
-  async exportDataSlice(_app: string, _cube: string): Promise<DataSlice> {
+  async exportDataSlice(app: string, cube: string): Promise<DataSlice> {
     if (this.isMock) {
       return readFixture<PlanningFixture>("mock-planning/planning.json")
         .dataSlice;
+    }
+    if (this.config.deployment === "onprem" && this.config.auth === "basic") {
+      // Best-effort against the Cloud-style inline `exportdataslice` endpoint.
+      // UNVERIFIED on 11.1.2.4 — some patch levels only expose the job-based
+      // (EXPORT_DATA/dataexport) export surface and will 404 here; real export
+      // may need to go through executeJob + file download instead. We send a
+      // minimal whole-cube grid request (no POV/rows/columns spec yet — a known
+      // follow-up). See docs/onprem-corprpt-500-issue.md.
+      const path = `/HyperionPlanning/rest/${this.config.apiVersion}/applications/${encodeURIComponent(app)}/plantypes/${encodeURIComponent(cube)}/exportdataslice`;
+      const res = await onpremRequest<Record<string, unknown>>(this.config, "POST", path, {
+        exportPlanningData: false,
+        gridDefinition: { suppressMissingBlocks: true },
+      });
+      return parseExportDataSliceGrid(res);
     }
     return this.liveNotImplemented("exportDataSlice");
   }
@@ -595,14 +697,23 @@ export class EpmClient {
         );
       }
       const path = `/HyperionPlanning/rest/${this.config.apiVersion}/applications/${encodeURIComponent(app)}/jobs`;
-      // Response shape is best-effort/unverified against a real on-prem
-      // server — adjust field names once tested (see OnpremRequestError on
-      // failures, or scripts/test_onprem_planning_connection.py).
-      const res = await onpremRequest<Record<string, unknown>>(this.config, "POST", path, {
-        jobType: def.jobType,
-        jobName,
-        parameters: parameters ?? {},
-      });
+      // On-prem 11.1.2.4 /jobs takes application/x-www-form-urlencoded, not the
+      // Cloud-style JSON body (see the WADL note in
+      // docs/onprem-corprpt-500-issue.md). Response shape is best-effort and
+      // unverified against a real on-prem server — adjust field names once
+      // tested (see OnpremRequestError on failures, or
+      // scripts/test_onprem_planning_connection.py).
+      const res = await onpremRequest<Record<string, unknown>>(
+        this.config,
+        "POST",
+        path,
+        {
+          jobType: def.jobType,
+          jobName,
+          parameters: parameters ?? {},
+        },
+        "form"
+      );
       const resolvedJobId = Number(res.jobId ?? res.jobID ?? res.id ?? jobId);
       const status = String(res.status ?? "PROCESSING") as JobStatusCode;
       return {
