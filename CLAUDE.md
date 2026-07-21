@@ -71,16 +71,18 @@ The `epm-safety-evaluator` agent (`.claude/agents/epm-safety-evaluator.md`) is a
 
 ## MCP servers
 
-| Server | npm script | Domain | Wired into agents/skills/permissions? |
-|---|---|---|---|
-| oracle-epm-core | `mcp:core` | Auth, jobs, files, audit | yes |
-| planning-ops | `mcp:planning` | Data exports, business rules, substitution vars | yes |
-| fccs-close | `mcp:fccs` | Close readiness, journals, IC matching | yes |
-| hfm | `mcp:hfm` | Consolidation status, IC transactions, balancing, currency conversion | **no** — server + fixtures only |
-| data-integration-watchtower | `mcp:di` | Pipeline inventory, failed loads, POV locks | yes |
-| metadata-governance | `mcp:metadata` | Snapshots, diffs, dynamic-calc risk | yes |
-| security-audit | `mcp:security` | Roles, MFA gaps, stale accounts, login audit | yes |
-| epm-automate-wrapper | `mcp:automate` | Allowlisted EPM Automate commands only | yes |
+| Server | npm script | Domain |
+|---|---|---|
+| oracle-epm-core | `mcp:core` | Auth, jobs, files, audit |
+| planning-ops | `mcp:planning` | Data exports, business rules, substitution vars |
+| fccs-close | `mcp:fccs` | Close readiness, journals, IC matching |
+| hfm | `mcp:hfm` | Consolidation status, IC transactions, balancing, currency conversion — read-only |
+| data-integration-watchtower | `mcp:di` | Pipeline inventory, failed loads, POV locks |
+| metadata-governance | `mcp:metadata` | Snapshots, diffs, dynamic-calc risk |
+| security-audit | `mcp:security` | Roles, MFA gaps, stale accounts, login audit |
+| epm-automate-wrapper | `mcp:automate` | Allowlisted EPM Automate commands only |
+
+All eight servers are wired into `.claude/agents/`, `.claude/skills/`, and the allow-list in `.claude/settings.json`.
 
 ## Agents (`.claude/agents/`)
 
@@ -92,10 +94,9 @@ The `epm-safety-evaluator` agent (`.claude/agents/epm-safety-evaluator.md`) is a
 | `data-integration-watchtower` | Pipeline inventory, failed-load summaries, mapping exports — read-only |
 | `metadata-governance` | Snapshots, drift detection, dynamic-calc risk, member impact — read-only |
 | `security-audit` | Role/access reports, MFA gaps, brute-force logins, access drift — read-only |
+| `hfm` | Consolidation health check, entity/balancing status, IC transactions, currency conversion — read-only, on-prem |
 | `epm-automate` | Allowlisted EPM Automate operations only; no arbitrary shell |
 | `epm-safety-evaluator` | Reviews every proposed write; produces an approval packet or blocks |
-
-There is no `hfm` agent yet — the HFM MCP server exists (`mcp/hfm`, `servers-as-code/src/hfm.ts`, `fixtures/mock-hfm/`) but isn't exposed through a subagent, skill, or `.claude/settings.json` entry.
 
 ## Skills (`.claude/skills/`)
 
@@ -107,10 +108,11 @@ There is no `hfm` agent yet — the HFM MCP server exists (`mcp/hfm`, `servers-a
 | `metadata-diff` | Metadata drift, failed cube refresh, outline risk |
 | `security-access-review` | Access certifications, MFA gaps, login audit |
 | `epm-automate-runbooks` | Backup, snapshot download, file upload, Smart View replay |
+| `hfm-consolidation-readiness` | HFM (on-prem) consolidation status, balancing issues, pending IC transactions |
 
 ## Permissions (`.claude/settings.json`)
 
-- **Auto-allowed:** all read-only tools across the seven wired MCP servers.
+- **Auto-allowed:** all read-only tools across all eight MCP servers.
 - **Ask (user confirmation):** `epm_execute_job`, `automate_run_approved_command`.
 - **Hook-gated:** any tool matching `execute_job | post_journal | clear_data | copy_data | import_* | refresh_cube | update_substitution_variable | run_business_rule | automate_run`.
 
@@ -134,7 +136,7 @@ servers-as-code/                    Typed business functions per domain
 mcp/oracle-epm-core/                Core MCP server
 mcp/planning-ops/                   Planning MCP server
 mcp/fccs-close/                     FCCS close MCP server
-mcp/hfm/                            HFM consolidation MCP server (not yet wired into agents/skills)
+mcp/hfm/                            HFM consolidation MCP server
 mcp/data-integration-watchtower/    DI/DM MCP server
 mcp/metadata-governance/            Metadata MCP server
 mcp/security-audit/                 Security MCP server (read-only)
