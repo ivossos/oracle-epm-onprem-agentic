@@ -31,7 +31,7 @@ npx vitest run -t "some test name"
 npm run mcp:core         # oracle-epm-core
 npm run mcp:planning     # planning-ops
 npm run mcp:fccs         # fccs-close
-npm run mcp:hfm          # hfm (consolidation) — MCP server + fixtures exist, not yet wired into .claude/agents|skills|settings.json
+npm run mcp:hfm          # hfm (consolidation) — read-only, on-prem
 npm run mcp:di           # data-integration-watchtower
 npm run mcp:metadata     # metadata-governance
 npm run mcp:security     # security-audit
