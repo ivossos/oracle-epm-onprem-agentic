@@ -6,6 +6,7 @@
  * logic and a runnable mock demo so the whole system can be exercised without
  * Oracle credentials or an Anthropic API key.
  */
+import { fileURLToPath } from "node:url";
 import { fccs, planning, core } from "@epm/servers-as-code";
 
 export type Domain =
@@ -53,7 +54,7 @@ async function demo(): Promise<void> {
 }
 
 // Run demo only when invoked directly.
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   demo().catch((err) => {
     console.error(err);
     process.exit(1);
