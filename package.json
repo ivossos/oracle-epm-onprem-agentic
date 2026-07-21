@@ -26,13 +26,14 @@
     "mcp:security": "tsx mcp/security-audit/src/index.ts",
     "mcp:automate": "tsx mcp/epm-automate-wrapper/src/index.ts",
     "mcp:hfm": "tsx mcp/hfm/src/index.ts",
-    "demo": "tsx apps/claude-agent/src/orchestrator.ts"
+    "demo": "tsx apps/claude-agent/src/orchestrator.ts",
+    "monitor:variance": "tsx apps/claude-agent/src/variance-monitor.ts"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+    "vitest": "^4.1.10"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",

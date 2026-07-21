@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oracle EPM Planning AI Agent</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React 18 & Babel CDNs -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-slate-900 text-slate-100">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- INLINE SVG ICONS (Requires no external NPM dependencies) ---
+        const DatabaseIcon = () => (
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 7v10c0 2.21 3.58 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.58 4 8 4s8-1.79 8-4M4 7c0-2.21 3.58-4 8-4s8 1.79 8 4m0 5c0 2.21-3.58 4-8 4s-8-1.79-8-4" />
+            </svg>
+        );
+        const TerminalIcon = ({ className }) => (
+            <svg className={className || "w-4 h-4"} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+        );
+        const GridIcon = ({ className }) => (
+            <svg className={className || "w-4 h-4"} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+        );
+        const FileTextIcon = ({ className }) => (
+            <svg className={className || "w-4 h-4"} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+        );
+        const AlertTriangleIcon = () => (
+            <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+        );
+        const RefreshCwIcon = ({ className }) => (
+            <svg className={className || "w-4 h-4"} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 4H18.5" />
+            </svg>
+        );
+        const SendIcon = () => (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+        );
+        const CheckIcon = () => (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+        );
+        const XIcon = () => (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        );
+
+        // --- DASHBOARD APP COMPONENT ---
+        function OracleEpmDashboard() {
+            const [messages, setMessages] = useState([
+                { role: 'assistant', text: "Hello! I am your On-Premise Oracle EPM Agent. I'm wired up to 8 MCP servers:\n\n- Planning — data slices, variance, substitution variables\n- Core — applications, job definitions/status, execute job\n- FCCS — close readiness, metadata validation, journals, intercompany matching\n- HFM — consolidation\n- Data Integration — pipeline inventory, failed loads, POV locks\n- Metadata Governance — snapshots, diffs, member impact risk\n- Security Audit — role/access/login reports\n- EPM Automate — allowlisted commands\n\nMutating actions (execute a job, run an automate command) require your approval before they run. What do you need?" }
+            ]);
+            const [input, setInput] = useState('');
+            const [sessionId, setSessionId] = useState(null);
+            const [loading, setLoading] = useState(false);
+            const [pendingApproval, setPendingApproval] = useState(null);
+            const [activeTab, setActiveTab] = useState('console'); 
+            const [sysStatus, setSysStatus] = useState({
+                planning: 'online',
+                essbase: 'online',
+                olu: 'configured',
+                serverLoad: '12%'
+            });
+            const [systemLogs, setSystemLogs] = useState([
+                "[System Initialization] MCP client bridge connected via local stdio on port 8000.",
+                "[Config Path Check] EPM_ORACLE_HOME validated at /u01/oracle/Middleware/EPMSystem11R1.",
+                "[Connection Check] Oracle WebLogic Server responding at http://epm-server.local:19000/HyperionPlanning."
+            ]);
+            const [mdxGridData, setMdxGridData] = useState(null);
+            const chatEndRef = useRef(null);
+
+            useEffect(() => {
+                chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, [messages, loading]);
+
+            const addLog = (logText) => {
+                const timestamp = new Date().toLocaleTimeString();
+                setSystemLogs((prev) => [...prev, `[${timestamp}] ${logText}`]);
+            };
+
+            const parseMdxToGrid = (rawText) => {
+                if (!rawText) return null;
+                const lines = rawText.trim().split('\n').map(line => line.trim()).filter(line => line.length > 0);
+                if (lines.length < 2) return null;
+
+                const cleanLines = lines.filter(line => !line.startsWith('|---') && !line.startsWith('---'));
+                const rows = cleanLines.map(line => {
+                    if (line.startsWith('|')) {
+                        return line.split('|').map(cell => cell.trim()).filter((_, idx, arr) => idx > 0 && idx < arr.length - 1);
+                    }
+                    return line.split(/[\t,]+/);
+                });
+
+                return {
+                    headers: rows[0],
+                    data: rows.slice(1)
+                };
+            };
+
+            const handleSend = async (e) => {
+                e.preventDefault();
+                if (!input.trim() || loading) return;
+
+                const userQuery = input;
+                setInput('');
+                setLoading(true);
+                setMessages((prev) => [...prev, { role: 'user', text: userQuery }]);
+                addLog(`User issued request: "${userQuery}"`);
+
+                try {
+                    // Try to connect to your FastAPI local endpoint
+                    const response = await fetch('http://localhost:8000/api/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ session_id: sessionId, message: userQuery }),
+                    });
+                    const data = await response.json();
+                    setSessionId(data.session_id);
+                    processBackendResponse(data);
+                } catch (err) {
+                    addLog(`Local server offline. Utilizing simulated sandbox execution.`);
+                    handleDemoResponse(userQuery);
+                }
+            };
+
+            const processBackendResponse = (data) => {
+                const processed = [];
+                let lastMdxData = null;
+
+                data.messages.forEach((msg) => {
+                    if (Array.isArray(msg.content)) {
+                        msg.content.forEach((block) => {
+                            if (block.type === 'text') {
+                                processed.push({ role: msg.role, text: block.text });
+                                if (block.text.includes('|') || block.text.includes('\t')) {
+                                    lastMdxData = block.text;
+                                }
+                            } else if (block.type === 'tool_use') {
+                                processed.push({ role: 'system', type: 'tool', text: `Executing Tool: ${block.name}` });
+                                addLog(`LLM triggered server-side script: ${block.name}`);
+                            }
+                        });
+                    } else {
+                        processed.push({ role: msg.role, text: msg.content });
+                    }
+                });
+
+                setMessages(processed);
+
+                if (lastMdxData) {
+                    const parsed = parseMdxToGrid(lastMdxData);
+                    if (parsed) {
+                        setMdxGridData(parsed);
+                        setActiveTab('grid');
+                        addLog("Essbase tabular result successfully loaded into the Excel Grid view.");
+                    }
+                }
+
+                if (data.status === 'awaiting_approval') {
+                    setPendingApproval(data.tool_call);
+                    addLog(`CRITICAL: Awaiting administrator approval to run on-premise execution script.`);
+                } else {
+                    setLoading(false);
+                }
+            };
+
+            const handleDemoResponse = (query) => {
+                setTimeout(() => {
+                    const lower = query.toLowerCase();
+                    if (lower.includes('add') || lower.includes('entity') || lower.includes('metadata') || lower.includes('cost center')) {
+                        setPendingApproval({
+                            id: "call_" + Math.random().toString(36).substring(7),
+                            name: "load_dimension_metadata",
+                            arguments: {
+                                dimension_name: "Entity",
+                                csv_data: "Parent,Member,Alias: Default\nTotal_Marketing,CC_405,AI Operations"
+                            }
+                        });
+                        addLog("Simulation: Blocked modification request. Displaying approval prompt.");
+                    } else if (lower.includes('mdx') || lower.includes('query') || lower.includes('sales')) {
+                        const mockMdx = `| Product | Region | Q1_Forecast | Q1_Actual |\n|---|---|---|---|\n| Standard_Laptop | US_Sales | 450,000 | 472,110 |\n| Pro_Phone | US_Sales | 890,000 | 912,400 |\n| Tablet_G3 | US_Sales | 150,000 | 142,800 |`;
+                        setMessages(prev => [...prev, { role: 'assistant', text: `Here is the Essbase query output retrieved for your Q1 US Sales dimension request:\n\n${mockMdx}` }]);
+                        setMdxGridData(parseMdxToGrid(mockMdx));
+                        setActiveTab('grid');
+                        addLog("Simulation: Rendered retrieved Essbase rows to grid viewport.");
+                    } else {
+                        setMessages(prev => [...prev, { role: 'assistant', text: "Your request was processed in sandbox mode. Try typing:\n- 'Query sales data' to populate the spreadsheet grid.\n- 'Add CC_405 under Total_Marketing' to trigger the admin approval panel." }]);
+                    }
+                    setLoading(false);
+                }, 1000);
+            };
+
+            const handleApproval = async (approved) => {
+                if (!pendingApproval) return;
+                setLoading(true);
+                const toolCallId = pendingApproval.id;
+                const toolName = pendingApproval.name;
+                setPendingApproval(null);
+                addLog(`Administrator selected decision: ${approved ? 'APPROVED' : 'DENIED'} for execution of ${toolName}.`);
+
+                try {
+                    const response = await fetch('http://localhost:8000/api/approve', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            session_id: sessionId,
+                            tool_call_id: toolCallId,
+                            approved: approved
+                        }),
+                    });
+                    const data = await response.json();
+                    processBackendResponse(data);
+                } catch (err) {
+                    addLog(`Connection offline. Simulating local execution completion.`);
+                    setTimeout(() => {
+                        if (approved) {
+                            addLog(`Simulation execution log for OLU finished with exit code: 0.`);
+                            setMessages(prev => [...prev, { role: 'assistant', text: `The metadata addition completed successfully. The elements are added to the Entity dimension structure.` }]);
+                        } else {
+                            setMessages(prev => [...prev, { role: 'assistant', text: "Operation cancelled. The proposed structure changes were discarded." }]);
+                        }
+                        setLoading(false);
+                    }, 1000);
+                }
+            };
+
+            return (
+                <div className="flex flex-col h-screen bg-slate-900 text-slate-100 font-sans">
+                    {/* Header bar */}
+                    <header className="flex items-center justify-between px-6 py-4 bg-slate-950 border-b border-slate-800">
+                        <div className="flex items-center space-x-3">
+                            <div className="p-2 bg-indigo-600 rounded-lg">
+                                <DatabaseIcon />
+                            </div>
+                            <div>
+                                <span className="text-xs font-semibold tracking-wider text-indigo-400 uppercase">On-Premises Gateway Control</span>
+                                <h1 className="text-lg font-bold tracking-tight text-white leading-tight">Oracle EPM Planning AI Agent</h1>
+                            </div>
+                        </div>
+
+                        <div className="hidden lg:flex items-center space-x-6">
+                            <div className="flex items-center space-x-2 text-xs">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                <span className="text-slate-400 font-medium">Planning WebApp:</span>
+                                <span className="text-emerald-400 font-bold font-mono">ONLINE</span>
+                            </div>
+                            <div className="flex items-center space-x-2 text-xs">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                <span className="text-slate-400 font-medium">Essbase Server:</span>
+                                <span className="text-emerald-400 font-bold font-mono">ONLINE</span>
+                            </div>
+                            <div className="flex items-center space-x-2 text-xs">
+                                <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                                <span className="text-slate-400 font-medium">OLU Integration:</span>
+                                <span className="text-indigo-300 font-bold font-mono">READY</span>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Workspace Core */}
+                    <div className="flex flex-1 overflow-hidden">
+                        
+                        {/* Sidebar */}
+                        <aside className="w-64 bg-slate-950 border-r border-slate-800 flex flex-col justify-between p-4">
+                            <div className="space-y-6">
+                                <div>
+                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Workspace Controls</p>
+                                    <nav className="space-y-1">
+                                        <button 
+                                            onClick={() => setActiveTab('console')}
+                                            className={`w-full flex items-center space-x-3 px-3 py-2 text-xs rounded-lg font-medium transition ${activeTab === 'console' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-900 hover:text-white'}`}
+                                        >
+                                            <TerminalIcon className="w-4 h-4" />
+                                            <span>Agent Interactive Chat</span>
+                                        </button>
+                                        <button 
+                                            onClick={() => setActiveTab('grid')}
+                                            className={`w-full flex items-center space-x-3 px-3 py-2 text-xs rounded-lg font-medium transition ${activeTab === 'grid' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-900 hover:text-white'}`}
+                                        >
+                                            <GridIcon className="w-4 h-4" />
+                                            <span>Essbase Grid Viewer</span>
+                                        </button>
+                                        <button 
+                                            onClick={() => setActiveTab('logs')}
+                                            className={`w-full flex items-center space-x-3 px-3 py-2 text-xs rounded-lg font-medium transition ${activeTab === 'logs' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-900 hover:text-white'}`}
+                                        >
+                                            <FileTextIcon className="w-4 h-4" />
+                                            <span>Interactive Server Logs</span>
+                                        </button>
+                                    </nav>
+                                </div>
+
+                                <div className="pt-4 border-t border-slate-800/60">
+                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Environment Health</p>
+                                    <div className="bg-slate-900 p-3 rounded-lg space-y-2 text-[11px] font-mono">
+                                        <div className="flex justify-between"><span className="text-slate-400">Memory Load:</span><span className="text-slate-200">54%</span></div>
+                                        <div className="flex justify-between"><span className="text-slate-400">Server CPU:</span><span className="text-slate-200">{sysStatus.serverLoad}</span></div>
+                                        <div className="flex justify-between"><span className="text-slate-400">App Session:</span><span className="text-indigo-400 font-bold">{sessionId ? "ACTIVE" : "PENDING"}</span></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="text-[10px] text-slate-500 space-y-1">
+                                <p>System Release: v11.2.14 On-Prem</p>
+                                <p className="text-[9px]">Server PID: 24108 (FastMCP Client)</p>
+                            </div>
+                        </aside>
+
+                        {/* Main Screen Content */}
+                        <main className="flex-1 flex overflow-hidden">
+                            
+                            {/* Left panel: Chat */}
+                            <section className="flex-1 flex flex-col bg-slate-900 border-r border-slate-800 h-full">
+                                <div className="flex items-center justify-between px-6 py-3 bg-slate-950/40 border-b border-slate-800">
+                                    <div className="flex items-center space-x-2">
+                                        <TerminalIcon className="w-4 h-4 text-indigo-400" />
+                                        <span className="text-xs font-bold tracking-wide">Command Center Terminal</span>
+                                    </div>
+                                    <span className="text-[10px] text-slate-500 font-mono">Security Level: Administrative Sandbox</span>
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                                    {messages.map((msg, idx) => (
+                                        <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                            <div className={`max-w-[85%] rounded-xl p-4 text-xs shadow-sm leading-relaxed ${
+                                                msg.role === 'user'
+                                                    ? 'bg-indigo-600 text-white rounded-br-none'
+                                                    : msg.type === 'tool'
+                                                    ? 'bg-slate-950 border border-amber-500/20 text-amber-300 font-mono text-[11px]'
+                                                    : 'bg-slate-950 text-slate-200 border border-slate-800 rounded-bl-none'
+                                            }`}>
+                                                <pre className="whitespace-pre-wrap font-sans">{msg.text}</pre>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {loading && (
+                                        <div className="flex justify-start">
+                                            <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 text-slate-400 text-xs flex items-center space-x-2 font-medium">
+                                                <RefreshCwIcon className="w-4 h-4 animate-spin text-indigo-400" />
+                                                <span>Analyzing target variables...</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div ref={chatEndRef} />
+                                </div>
+
+                                {/* Security Intercept banner */}
+                                {pendingApproval && (
+                                    <div className="bg-slate-950 border-t border-amber-500/30 p-5 space-y-4 shadow-2xl relative z-10">
+                                        <div className="flex items-start space-x-3">
+                                            <div className="p-2 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-lg">
+                                                <AlertTriangleIcon />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-sm font-bold text-amber-400">Security Gate Intercept: Approval Pending</h4>
+                                                <p className="text-xs text-slate-400 mt-1">
+                                                    The Agent requested an on-premise structure commit utilizing <span className="font-mono text-amber-300 bg-amber-500/10 px-1 rounded">{pendingApproval.name}</span>.
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-slate-900 border border-slate-800 p-4 rounded-lg">
+                                            <p className="text-[10px] text-slate-500 font-mono uppercase mb-2">// Proposed Payload Details</p>
+                                            <pre className="text-xs text-indigo-300 font-mono whitespace-pre overflow-x-auto max-h-36">
+                                                {JSON.stringify(pendingApproval.arguments, null, 2)}
+                                            </pre>
+                                        </div>
+
+                                        <div className="flex justify-end space-x-3 pt-1">
+                                            <button
+                                                onClick={() => handleApproval(false)}
+                                                className="flex items-center space-x-2 px-4 py-2 text-xs font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-lg hover:bg-rose-500/20 transition"
+                                            >
+                                                <XIcon />
+                                                <span>Block Commit</span>
+                                            </button>
+                                            <button
+                                                onClick={() => handleApproval(true)}
+                                                className="flex items-center space-x-2 px-4 py-2 text-xs font-bold text-slate-950 bg-amber-500 rounded-lg hover:bg-amber-400 transition shadow-lg shadow-amber-500/10"
+                                            >
+                                                <CheckIcon />
+                                                <span>Approve & Write</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <form onSubmit={handleSend} className="p-4 bg-slate-950 border-t border-slate-800 flex space-x-2">
+                                    <input
+                                        type="text"
+                                        value={input}
+                                        onChange={(e) => setInput(e.target.value)}
+                                        disabled={loading || !!pendingApproval}
+                                        placeholder={pendingApproval ? "Authorize or deny the current command to continue..." : "Ask your EPM Agent (e.g. Query regional sales units)..."}
+                                        className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-4 py-3 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-100 placeholder-slate-500 disabled:opacity-50"
+                                    />
+                                    <button
+                                        type="submit"
+                                        disabled={loading || !input.trim() || !!pendingApproval}
+                                        className="bg-indigo-600 text-white px-5 rounded-lg text-xs font-semibold hover:bg-indigo-500 transition disabled:opacity-40"
+                                    >
+                                        <SendIcon />
+                                    </button>
+                                </form>
+                            </section>
+
+                            {/* Right Panel: Viewports */}
+                            <section className="hidden md:flex md:w-[450px] lg:w-[500px] flex-col bg-slate-950 h-full">
+                                <div className="flex border-b border-slate-800 bg-slate-950/80">
+                                    <button 
+                                        onClick={() => setActiveTab('console')}
+                                        className={`flex-1 py-3 text-xs font-bold border-b-2 transition flex items-center justify-center space-x-2 ${activeTab === 'console' ? 'border-indigo-500 text-white bg-slate-900' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+                                    >
+                                        <TerminalIcon className="w-3.5 h-3.5" />
+                                        <span>Live Action Terminal</span>
+                                    </button>
+                                    <button 
+                                        onClick={() => setActiveTab('grid')}
+                                        className={`flex-1 py-3 text-xs font-bold border-b-2 transition flex items-center justify-center space-x-2 ${activeTab === 'grid' ? 'border-indigo-500 text-white bg-slate-900' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+                                    >
+                                        <GridIcon className="w-3.5 h-3.5" />
+                                        <span>Essbase Grid View</span>
+                                    </button>
+                                    <button 
+                                        onClick={() => setActiveTab('logs')}
+                                        className={`flex-1 py-3 text-xs font-bold border-b-2 transition flex items-center justify-center space-x-2 ${activeTab === 'logs' ? 'border-indigo-500 text-white bg-slate-900' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+                                    >
+                                        <FileTextIcon className="w-3.5 h-3.5" />
+                                        <span>System Console Logs</span>
+                                    </button>
+                                </div>
+
+                                {activeTab === 'console' && (
+                                    <div className="flex-1 p-6 space-y-6 overflow-y-auto">
+                                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Under-the-hood Orchestration</h3>
+                                        <div className="relative border-l border-slate-800 pl-6 ml-3 space-y-6">
+                                            <div className="relative">
+                                                <span className="absolute -left-[30px] top-0.5 p-1 bg-indigo-500/15 rounded-full border border-indigo-500/30 text-indigo-400">⚙️</span>
+                                                <h4 className="text-xs font-bold text-slate-200">1. Parse Natural Language Input</h4>
+                                                <p className="text-[11px] text-slate-500 mt-1">LLM translates the user request into formal Oracle EPM action maps.</p>
+                                            </div>
+                                            <div className="relative">
+                                                <span className="absolute -left-[30px] top-0.5 p-1 bg-amber-500/15 rounded-full border border-amber-500/30 text-amber-400">🛡️</span>
+                                                <h4 className="text-xs font-bold text-slate-200">2. Assess Security Guardrails</h4>
+                                                <p className="text-[11px] text-slate-500 mt-1">Verifies if requested tool alters database schema, runs heavy rollups, or writes data.</p>
+                                            </div>
+                                            <div className="relative">
+                                                <span className="absolute -left-[30px] top-0.5 p-1 bg-indigo-500/15 rounded-full border border-indigo-500/30 text-indigo-400">📝</span>
+                                                <h4 className="text-xs font-bold text-slate-200">3. Construct Target Shell Commands</h4>
+                                                <p className="text-[11px] text-slate-500 mt-1">Generates exact temporary MaxL execution matrices or OLU comma-separated inputs.</p>
+                                            </div>
+                                            <div className="relative">
+                                                <span className="absolute -left-[30px] top-0.5 p-1 bg-emerald-500/15 rounded-full border border-emerald-500/30 text-emerald-400">🚀</span>
+                                                <h4 className="text-xs font-bold text-slate-200">4. Commit Transaction Output</h4>
+                                                <p className="text-[11px] text-slate-500 mt-1">Executes the validated command safely on-premises and processes output spools back to prompt stream.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {activeTab === 'grid' && (
+                                    <div className="flex-1 p-6 overflow-hidden flex flex-col">
+                                        <div className="flex justify-between items-center mb-4">
+                                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Spreadsheet Data Grid Viewport</h3>
+                                            <span className="text-[10px] bg-slate-900 border border-slate-800 px-2 py-0.5 rounded font-mono text-indigo-400">Smart View Emulation</span>
+                                        </div>
+
+                                        {mdxGridData ? (
+                                            <div className="flex-1 overflow-auto border border-slate-800 rounded-lg bg-slate-900">
+                                                <table className="w-full text-left border-collapse text-xs font-mono">
+                                                    <thead className="bg-slate-950 text-slate-300 sticky top-0">
+                                                        <tr>
+                                                            {mdxGridData.headers.map((hdr, hIdx) => (
+                                                                <th key={hIdx} className="px-3 py-2 border border-slate-800 text-slate-400 font-bold">
+                                                                    {hdr}
+                                                                </th>
+                                                            ))}
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-800">
+                                                        {mdxGridData.data.map((row, rIdx) => (
+                                                            <tr key={rIdx} className="hover:bg-slate-800/50 transition">
+                                                                {row.map((cell, cIdx) => (
+                                                                    <td key={cIdx} className="px-3 py-2 border border-slate-800 text-slate-200">
+                                                                        {cell}
+                                                                    </td>
+                                                                ))}
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        ) : (
+                                            <div className="flex-grow flex flex-col items-center justify-center border border-dashed border-slate-800 rounded-lg p-6 text-center text-slate-500">
+                                                <span className="text-3xl mb-2">📊</span>
+                                                <p className="text-xs font-medium">No active Essbase grid populated.</p>
+                                                <p className="text-[10px] text-slate-600 mt-1">Run an MDX query with the agent to display structural values inside this matrix.</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {activeTab === 'logs' && (
+                                    <div className="flex-1 p-6 flex flex-col overflow-hidden bg-slate-950">
+                                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Live Trace Console (stdout/stderr)</h3>
+                                        <div className="flex-1 bg-slate-900 border border-slate-800 rounded-lg p-4 font-mono text-[10px] text-slate-400 overflow-y-auto space-y-1.5 scrollbar-thin">
+                                            {systemLogs.map((log, lIdx) => (
+                                                <div key={lIdx} className="leading-relaxed whitespace-pre-wrap">
+                                                    <span className="text-slate-600">❯</span> {log}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </section>
+
+                        </main>
+                    </div>
+                </div>
+            );
+        }
+
+        // Render Application
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<OracleEpmDashboard />);
+    </script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import http from "node:http";
 import https from "node:https";
 import type {
   Application,
@@ -87,6 +88,85 @@ function buildRequestHeaders(
   return headers;
 }
 
+/** Thrown when an on-prem REST call returns a non-2xx status. */
+export class OnpremRequestError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly path: string,
+    public readonly body: string
+  ) {
+    super(`On-prem EPM request to '${path}' failed with ${status}: ${body.slice(0, 500)}`);
+  }
+}
+
+/**
+ * Issues a Basic-Auth REST call against an on-prem Oracle EPM 11.1.2.4 server.
+ *
+ * ASSUMES the v3 JSON job-management surface (same as Cloud EPM):
+ * `/HyperionPlanning/rest/v3/applications/{app}/jobs` etc. This has not been
+ * confirmed against a real on-prem 11.1.2.4 server — some patch levels may
+ * instead expose a legacy `/rest/11.1.2.4/` form-urlencoded surface (see
+ * scripts/test_onprem_planning_connection.py). Re-verify with the discovery
+ * step there before trusting this against a real target.
+ */
+function onpremRequest<T>(
+  config: EpmClientConfig,
+  method: "GET" | "POST",
+  path: string,
+  body?: unknown
+): Promise<T> {
+  if (config.deployment !== "onprem" || config.auth !== "basic") {
+    throw new Error(
+      "onpremRequest called for a non-onprem/non-basic-auth config."
+    );
+  }
+  if (!config.baseUrl || !config.username || !config.password) {
+    throw new Error(
+      "onpremRequest requires baseUrl, username, and password to be configured."
+    );
+  }
+
+  const useHttps = config.onprem?.useHttps ?? false;
+  const url = new URL(`${config.baseUrl}${path}`);
+  const payload = body !== undefined ? JSON.stringify(body) : undefined;
+  const headers = buildRequestHeaders(config);
+  if (payload !== undefined) {
+    headers["Content-Length"] = Buffer.byteLength(payload).toString();
+  }
+
+  return new Promise<T>((resolvePromise, reject) => {
+    const transport = useHttps ? https : http;
+    const req = transport.request(
+      url,
+      {
+        method,
+        headers,
+        agent: useHttps ? createHttpsAgent(config) : undefined,
+      },
+      (res) => {
+        let raw = "";
+        res.setEncoding("utf8");
+        res.on("data", (chunk) => (raw += chunk));
+        res.on("end", () => {
+          const status = res.statusCode ?? 0;
+          if (status < 200 || status >= 300) {
+            reject(new OnpremRequestError(status, path, raw));
+            return;
+          }
+          try {
+            resolvePromise(raw ? (JSON.parse(raw) as T) : (undefined as T));
+          } catch (err) {
+            reject(new Error(`On-prem EPM response for '${path}' was not valid JSON: ${(err as Error).message}`));
+          }
+        });
+      }
+    );
+    req.on("error", reject);
+    if (payload !== undefined) req.write(payload);
+    req.end();
+  });
+}
+
 interface PlanningFixture {
   applications: Application[];
   jobDefinitions: JobDefinition[];
@@ -140,8 +220,9 @@ interface HfmFixture {
  * Mock-first Oracle EPM client.
  *
  * In mock mode, all reads come from fixtures and all "mutations" are simulated
- * (no network). In live mode, methods issue REST calls (implemented behind
- * `liveNotImplemented` guards for now — Basic/OAuth wiring is a follow-up).
+ * (no network). In live mode, on-prem Basic Auth is wired for
+ * `listJobDefinitions`/`executeJob` (see `onpremRequest`); every other method
+ * and Cloud OAuth remain behind `liveNotImplemented` guards.
  *
  * The client NEVER performs a mutating operation without an approvalPacketId;
  * that contract is enforced here as a defense-in-depth layer beyond the agent
@@ -170,10 +251,19 @@ export class EpmClient {
     return this.liveNotImplemented("listApplications");
   }
 
-  async listJobDefinitions(_app: string): Promise<JobDefinition[]> {
+  async listJobDefinitions(app: string): Promise<JobDefinition[]> {
     if (this.isMock) {
       return readFixture<PlanningFixture>("mock-planning/planning.json")
         .jobDefinitions;
+    }
+    if (this.config.deployment === "onprem" && this.config.auth === "basic") {
+      const path = `/HyperionPlanning/rest/${this.config.apiVersion}/applications/${encodeURIComponent(app)}/jobdefinitions`;
+      const res = await onpremRequest<{ items?: JobDefinition[] } | JobDefinition[]>(
+        this.config,
+        "GET",
+        path
+      );
+      return Array.isArray(res) ? res : res.items ?? [];
     }
     return this.liveNotImplemented("listJobDefinitions");
   }
@@ -494,6 +584,38 @@ export class EpmClient {
         endTime: end.toISOString(),
         elapsedMs: 1500,
         logArtifactPath: `artifacts/jobs/${jobId}.log`,
+      };
+    }
+    if (this.config.deployment === "onprem" && this.config.auth === "basic") {
+      const defs = await this.listJobDefinitions(app);
+      const def = defs.find((d) => d.jobName === jobName);
+      if (!def) {
+        throw new Error(
+          `executeJob('${jobName}') refused: no job definition named '${jobName}' found for app '${app}'.`
+        );
+      }
+      const path = `/HyperionPlanning/rest/${this.config.apiVersion}/applications/${encodeURIComponent(app)}/jobs`;
+      // Response shape is best-effort/unverified against a real on-prem
+      // server — adjust field names once tested (see OnpremRequestError on
+      // failures, or scripts/test_onprem_planning_connection.py).
+      const res = await onpremRequest<Record<string, unknown>>(this.config, "POST", path, {
+        jobType: def.jobType,
+        jobName,
+        parameters: parameters ?? {},
+      });
+      const resolvedJobId = Number(res.jobId ?? res.jobID ?? res.id ?? jobId);
+      const status = String(res.status ?? "PROCESSING") as JobStatusCode;
+      return {
+        jobId: Number.isFinite(resolvedJobId) ? resolvedJobId : jobId,
+        jobName,
+        status,
+        descriptiveStatus: String(res.descriptiveStatus ?? status),
+        details: typeof res.details === "string" ? res.details : undefined,
+        statusUrl:
+          typeof res.statusUrl === "string"
+            ? res.statusUrl
+            : `${this.config.baseUrl}${path}/${resolvedJobId}`,
+        startTime: start.toISOString(),
       };
     }
     void parameters;
