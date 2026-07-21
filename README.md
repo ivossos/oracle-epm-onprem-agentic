@@ -5,10 +5,13 @@ built on a thin, typed MCP tool layer. **Mock-first**: every demo, eval, and
 tool runs with zero Oracle credentials until you flip `EPM_MODE=live`.
 
 > Status: `0.5.0` — P0 + P1 + P2 scaffold + on-prem support + HFM. Eight MCP servers (core, planning,
-> fccs-close, hfm, data-integration, metadata, security-audit, epm-automate-wrapper);
-> eight subagents, six skills, approval/write guards, and 29 evals are in place.
-> On-prem EPM 11.1.2.4 support added (Basic Auth, self-signed cert handling).
-> HFM consolidation workflows added. Live-mode REST transport (Basic/OAuth) to follow.
+> fccs-close, hfm, data-integration, metadata, security-audit, epm-automate-wrapper), all
+> wired into agents/skills/permissions; nine subagents, seven skills, approval/write guards,
+> and 34 tests (29 evals + 5 on-prem wiring tests) are in place.
+> On-prem EPM 11.1.2.4 Basic Auth is live-wired for job listing/execution — endpoint shape
+> unconfirmed against a real server, see `docs/onprem-setup.md`. Everything else (Cloud
+> OAuth, the rest of the on-prem surface) is still mock-only. A chat-gateway (FastAPI) UI
+> and a read-only variance-monitor CLI have also been added.
 
 ## Why this shape
 
