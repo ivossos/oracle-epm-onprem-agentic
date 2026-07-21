@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Anthropic-native agentic services for Oracle Cloud EPM (Planning / FCCS) and on-premises Oracle EPM 11.1.2.4+ (HFM), built on a thin, typed MCP tool layer. **Mock-first**: every demo, eval, and tool runs with zero Oracle credentials until `EPM_MODE=live` — and live mode is currently a stub (see "Mock-first vs. live mode" below).
+Anthropic-native agentic services for Oracle Cloud EPM (Planning / FCCS) and on-premises Oracle EPM 11.1.2.4+ (HFM), built on a thin, typed MCP tool layer. **Mock-first**: every demo, eval, and tool runs with zero Oracle credentials until `EPM_MODE=live` — and live mode is mostly still a stub, with on-prem Basic Auth wired for exactly two methods so far (see "Mock-first vs. live mode" below).
 
 ## Commands
 
@@ -13,7 +13,10 @@ npm test                 # vitest run — all *.eval.ts and *.test.ts
 npm run test:watch       # vitest (watch mode)
 npm run evals            # vitest run apps/claude-agent/src/evals  (29 eval cases across 7 files)
 npm run demo             # runnable mock orchestrator demo, no creds — tsx apps/claude-agent/src/orchestrator.ts
+npm run monitor:variance # read-only actual-vs-forecast variance check, exits 1 on exceptions — tsx apps/claude-agent/src/variance-monitor.ts [app] [cube] [thresholdPct]
 ```
+
+`npm test` runs 34 tests across 8 files: the 7 eval files above plus `packages/epm-core-client/src/onprem-live.test.ts` (on-prem Basic Auth wiring, against a local HTTP stub).
 
 Run a single eval file or test case directly with vitest (there's no per-package test script):
 
@@ -49,8 +52,9 @@ mcp/<domain>/src/index.ts        MCP server: registers tools with zod input sche
 
 - **MCP layer** (`mcp/*/src/index.ts`): one file per server. `registerTool(name, {title, description, inputSchema}, handler)` then wraps the result as `{ content: [{ type: "text", text: JSON.stringify(...) }] }`. No validation or safety logic lives here.
 - **servers-as-code** (`servers-as-code/src/*.ts`): one module per domain (`core`, `planning-ops`, `fccs-close`, `hfm`, `data-integration`, `metadata-governance`, `security-audit`, `epm-automate`), re-exported from `index.ts`. This is where domain logic (e.g. variance thresholds, close-readiness scoring) lives, on top of `EpmClient`.
-- **epm-core-client** (`packages/epm-core-client/src/`): `EpmClient` is mock-first — in mock mode every read loads a JSON fixture from `fixtures/mock-<domain>/`; in live mode every method currently throws via `liveNotImplemented()` (Basic/OAuth REST transport is a stated follow-up, not yet built). `config.ts` reads `EPM_MODE` / `EPM_DEPLOYMENT` (`cloud` | `onprem`) and picks Basic Auth (on-prem, always) vs. OAuth-or-Basic (cloud). `audit.ts` writes the append-only JSONL trail to `artifacts/audit.log`.
-- **apps/claude-agent**: `orchestrator.ts` is a deterministic regex router (`routeRequest`) from free text to a `Domain`, plus a runnable mock demo — in production this role is played by the Claude Agent SDK routing to the matching subagent + skill. `policies/` holds `approval-policy.ts` (the `MUTATING_ACTIONS` list and required scope fields), `write-guard.ts` (pure function enforcing the approval packet), and `pii-redaction.ts`. `evals/*.eval.ts` are vitest suites, one per domain plus `destructive-action.eval.ts`, asserting the safety/routing contracts.
+- **epm-core-client** (`packages/epm-core-client/src/`): `EpmClient` is mock-first — in mock mode every read loads a JSON fixture from `fixtures/mock-<domain>/`. In live mode, `listJobDefinitions` and `executeJob` issue real on-prem Basic Auth REST calls via `onpremRequest()` when `EPM_DEPLOYMENT=onprem`; every other method (and all of Cloud OAuth) still throws via `liveNotImplemented()`. `config.ts` reads `EPM_MODE` / `EPM_DEPLOYMENT` (`cloud` | `onprem`) and picks Basic Auth (on-prem, always) vs. OAuth-or-Basic (cloud). `audit.ts` writes the append-only JSONL trail to `artifacts/audit.log`.
+- **apps/claude-agent**: `orchestrator.ts` is a deterministic regex router (`routeRequest`) from free text to a `Domain`, plus a runnable mock demo — in production this role is played by the Claude Agent SDK routing to the matching subagent + skill. `variance-monitor.ts` is a standalone read-only CLI (`npm run monitor:variance`) that resolves the current POV from substitution variables, runs a variance snapshot, and exits nonzero on exceptions — meant for cron/CI. `policies/` holds `approval-policy.ts` (the `MUTATING_ACTIONS` list and required scope fields), `write-guard.ts` (pure function enforcing the approval packet), and `pii-redaction.ts`. `evals/*.eval.ts` are vitest suites, one per domain plus `destructive-action.eval.ts`, asserting the safety/routing contracts.
+- **apps/chat-gateway**: a separate Python/FastAPI app (own venv, `requirements.txt`) exposing a chat UI (`static/index.html`) over an Anthropic tool-use loop wired to all 8 MCP servers via stdio (`app/mcp_pool.py`, `app/config.py`). The two mutating tools (`epm_execute_job`, `automate_run_approved_command`) pause the turn and return `status: "awaiting_approval"` until a separate `/api/approve` call confirms or denies — see `apps/chat-gateway/README.md`. This is Python and independent of the TS workspaces; it is not covered by `npm run typecheck`/`npm test`.
 - **.claude/**: `agents/*.md` (subagent definitions), `skills/*/SKILL.md`, `hooks/pre-write-guard.mjs`, `settings.json` (permission allow/ask lists + the `PreToolUse` hook wiring). This is what a Claude Code session running in this repo actually loads.
 - **fixtures/mock-<domain>/*.json**: the only data source in mock mode. Add new mock scenarios here, not in code.
 - **claude-skills-catalogue/**: an unrelated personal backup/export of the user's global `~/.claude/skills` (36 skills, zipped) — not part of this project's runtime, don't treat it as project architecture.
@@ -67,7 +71,7 @@ The `epm-safety-evaluator` agent (`.claude/agents/epm-safety-evaluator.md`) is a
 
 ### Mock-first vs. live mode
 
-`EPM_MODE=mock` (default) is fully functional and is what `npm test`/`npm run demo`/the MCP servers exercise today. `EPM_MODE=live` only flips `EpmClient.isMock` — every live-mode method hits `liveNotImplemented()` and throws; there is no REST transport wired yet. `EPM_DEPLOYMENT` (`cloud` default | `onprem`) and the on-prem Basic Auth / self-signed-cert handling in `client.ts` (`buildBasicAuthHeader`, `createHttpsAgent`) are scaffolded ahead of that transport work — see `docs/onprem-setup.md`.
+`EPM_MODE=mock` (default) is fully functional and is what `npm test`/`npm run demo`/the MCP servers exercise today. `EPM_MODE=live` flips `EpmClient.isMock`, but only two methods actually go over the wire so far: `listJobDefinitions` and `executeJob`, and only when `EPM_DEPLOYMENT=onprem` + `EPM_USERNAME`/`EPM_PASSWORD` are set — they call `onpremRequest()` (`packages/epm-core-client/src/client.ts`), a small Basic-Auth HTTP/HTTPS client hitting `/HyperionPlanning/rest/{apiVersion}/applications/{app}/...`. That endpoint shape assumes the same v3 JSON job-management surface as Cloud EPM and **has not been confirmed against a real on-prem 11.1.2.4 server** — some patch levels may instead expose a legacy form-urlencoded `/rest/11.1.2.4/` surface; re-run the discovery step in `scripts/test_onprem_planning_connection.py` against the real target before trusting it. Every other method, and all of Cloud OAuth, still throws via `liveNotImplemented()`. Self-signed-cert handling (`createHttpsAgent`, `EPM_VERIFY_SSL_CERT`) is wired but only exercised when `EPM_USE_HTTPS=true` — see `docs/onprem-setup.md`. `packages/epm-core-client/src/onprem-live.test.ts` covers the wired path against a local HTTP stub, not a real server.
 
 ## MCP servers
 
@@ -126,7 +130,7 @@ All eight servers are wired into `.claude/agents/`, `.claude/skills/`, and the a
 
 ## Deployment modes / env vars
 
-Copy `.env.example` to `.env`. Key vars: `EPM_MODE` (`mock` default | `live`), `EPM_DEPLOYMENT` (`cloud` default | `onprem`), cloud (`EPM_BASE_URL`, `EPM_IDENTITY_DOMAIN`, OAuth `EPM_OAUTH_*`), on-prem (`EPM_SERVER_HOSTNAME`, `EPM_SERVER_PORT`, `EPM_USE_HTTPS`, `EPM_VERIFY_SSL_CERT`), shared credentials (`EPM_USERNAME`, `EPM_PASSWORD`, `EPM_API_VERSION`). On-prem always uses Basic Auth; OAuth is cloud-only and recommended there because MFA breaks Basic-Auth-only flows. Credentials are never surfaced in prompts, tool results, or logs (`redactConfig`). See `docs/onprem-setup.md` for SSL/networking detail — but note live-mode REST calls aren't implemented yet regardless of deployment (see "Mock-first vs. live mode" above).
+Copy `.env.example` to `.env`. Key vars: `EPM_MODE` (`mock` default | `live`), `EPM_DEPLOYMENT` (`cloud` default | `onprem`), cloud (`EPM_BASE_URL`, `EPM_IDENTITY_DOMAIN`, OAuth `EPM_OAUTH_*`), on-prem (`EPM_SERVER_HOSTNAME`, `EPM_SERVER_PORT`, `EPM_USE_HTTPS`, `EPM_VERIFY_SSL_CERT`), shared credentials (`EPM_USERNAME`, `EPM_PASSWORD`, `EPM_API_VERSION`). On-prem always uses Basic Auth; OAuth is cloud-only and recommended there because MFA breaks Basic-Auth-only flows. Credentials are never surfaced in prompts, tool results, or logs (`redactConfig`). See `docs/onprem-setup.md` for SSL/networking detail, and `scripts/test_onprem_planning_connection.py` for a standalone connectivity/discovery check against a real server — but note only `listJobDefinitions`/`executeJob` actually go live on-prem today; everything else still throws regardless of deployment (see "Mock-first vs. live mode" above).
 
 ## Layout
 
@@ -141,10 +145,12 @@ mcp/data-integration-watchtower/    DI/DM MCP server
 mcp/metadata-governance/            Metadata MCP server
 mcp/security-audit/                 Security MCP server (read-only)
 mcp/epm-automate-wrapper/           EPM Automate MCP server (allowlisted only)
-apps/claude-agent/                  Orchestrator, policies, evals
+apps/claude-agent/                  Orchestrator, variance monitor, policies, evals
+apps/chat-gateway/                  Python/FastAPI chat UI over the MCP servers (separate from the TS workspaces)
 .claude/                            agents/, skills/, hooks/, settings.json
 fixtures/                           Mock data for all domains (mock-planning, mock-fccs, mock-hfm, mock-data-integration, mock-metadata, mock-security, mock-automate)
 docs/                               api-mapping.md, approval-model.md, onprem-setup.md, demo-prompts.md
+scripts/                            test_onprem_planning_connection.py — standalone on-prem connectivity/discovery check
 artifacts/                          Runtime output: audit.log (JSONL), exports/ (mock export files)
 claude-skills-catalogue/            Unrelated personal skills backup — not part of this project
 ```
