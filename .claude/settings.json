@@ -10,6 +10,12 @@
       "mcp__planning-ops__planning_export_data_slice",
       "mcp__planning-ops__planning_variance_snapshot",
       "mcp__planning-ops__planning_get_substitution_variables",
+      "mcp__planning-ops__planning_list_dimensions",
+      "mcp__planning-ops__planning_find_members",
+      "mcp__planning-ops__planning_get_member",
+      "mcp__planning-ops__planning_build_mdx",
+      "mcp__planning-ops__planning_list_business_rules",
+      "mcp__planning-ops__planning_get_business_rule",
       "mcp__fccs-close__fccs_close_readiness_report",
       "mcp__fccs-close__fccs_validate_metadata",
       "mcp__fccs-close__fccs_retrieve_journals",
@@ -29,6 +35,7 @@
       "mcp__data-integration-watchtower__di_diagnose_failures",
       "mcp__data-integration-watchtower__di_export_mapping",
       "mcp__data-integration-watchtower__di_pov_lock_status",
+      "mcp__data-integration-watchtower__di_integration_inventory",
       "mcp__metadata-governance__metadata_export_snapshot",
       "mcp__metadata-governance__metadata_compare_snapshots",
       "mcp__metadata-governance__metadata_find_risks",
@@ -43,6 +50,7 @@
     ],
     "ask": [
       "mcp__oracle-epm-core__epm_execute_job",
+      "mcp__planning-ops__planning_run_business_rule",
       "mcp__epm-automate-wrapper__automate_run_approved_command"
     ],
     "deny": []

@@ -4,13 +4,51 @@ import type {
   MetadataDiffResult,
   MetadataMember,
   MetadataRisk,
-  MetadataSnapshot,
 } from "@epm/core-client";
+import { boundAndPersist } from "./_util.js";
 
 const client = new EpmClient();
 
-export async function exportSnapshot(which: string): Promise<MetadataSnapshot> {
-  return client.getMetadataSnapshot(which);
+export interface SnapshotSummary {
+  snapshotId: string;
+  capturedAt: string;
+  app: string;
+  totalMembers: number;
+  dimensions: { dimension: string; members: number; byStorage: Record<string, number> }[];
+  sample: MetadataMember[];
+  artifactPath?: string;
+}
+
+/**
+ * Returns a bounded metadata snapshot summary: per-dimension member counts and
+ * storage breakdown, a small member sample, and the full snapshot persisted to
+ * an artifact. Bounding matters live — the outline is thousands of members.
+ */
+export async function exportSnapshot(which = "current"): Promise<SnapshotSummary> {
+  const snap = await client.getMetadataSnapshot(which);
+  const byDim = new Map<string, { members: number; byStorage: Record<string, number> }>();
+  for (const m of snap.members) {
+    const g = byDim.get(m.dimension) ?? { members: 0, byStorage: {} };
+    g.members++;
+    g.byStorage[m.dataStorage] = (g.byStorage[m.dataStorage] ?? 0) + 1;
+    byDim.set(m.dimension, g);
+  }
+  const bounded = boundAndPersist(
+    snap.members,
+    `artifacts/exports/metadata_${snap.snapshotId}.json`,
+    15
+  );
+  return {
+    snapshotId: snap.snapshotId,
+    capturedAt: snap.capturedAt,
+    app: snap.app,
+    totalMembers: snap.members.length,
+    dimensions: [...byDim.entries()]
+      .map(([dimension, g]) => ({ dimension, ...g }))
+      .sort((a, b) => a.dimension.localeCompare(b.dimension)),
+    sample: bounded.sample,
+    artifactPath: bounded.artifactPath,
+  };
 }
 
 function key(m: MetadataMember): string {

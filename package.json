@@ -27,7 +27,8 @@
     "mcp:automate": "tsx mcp/epm-automate-wrapper/src/index.ts",
     "mcp:hfm": "tsx mcp/hfm/src/index.ts",
     "demo": "tsx apps/claude-agent/src/orchestrator.ts",
-    "monitor:variance": "tsx apps/claude-agent/src/variance-monitor.ts"
+    "monitor:variance": "tsx apps/claude-agent/src/variance-monitor.ts",
+    "db:dimensions": "tsx scripts/build-dimension-db.ts"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

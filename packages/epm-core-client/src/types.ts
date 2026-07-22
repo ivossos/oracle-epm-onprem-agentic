@@ -34,6 +34,17 @@ export interface EpmClientConfig {
     serverPort?: number;
     useHttps?: boolean;
     verifySslCert?: boolean;
+    /**
+     * Base path of the Essbase REST API on this server (default
+     * `/essbase/rest/v1`). Planning apps are backed by Essbase cubes, and on a
+     * server whose Planning REST module is down this is the live read path.
+     */
+    essbaseBasePath?: string;
+    /**
+     * Base path of the FDMEE / Data Management REST API (default `/aif/rest/V1`;
+     * note the literal uppercase `V1`). Present on 11.1.2.4.210+.
+     */
+    aifBasePath?: string;
   };
 }
 
@@ -98,6 +109,13 @@ export interface DataSlice {
   pov: Pov;
   rows: DataSliceRow[];
   artifactPath?: string;
+}
+
+/** A business rule (Calc Manager rule / Essbase calc script) summary. */
+export interface BusinessRule {
+  name: string;
+  sizeInBytes: number;
+  modifiedTime: number | null;
 }
 
 // ---- FCCS ----
@@ -197,6 +215,22 @@ export interface PovLock {
   period: string;
   scenario: string;
   locked: boolean;
+}
+
+/** A registered FDMEE / Data Management target application. */
+export interface DmApplication {
+  name: string;
+  type: string;
+}
+
+/** An FDMEE data load rule (from `/aif/rest/V1/rules?locationId=`). */
+export interface DataRule {
+  ruleName: string;
+  locationId: number;
+  application: string;
+  lastJobId: number | null;
+  lastJobStatus: string;
+  source: string;
 }
 
 // ---- Metadata governance ----

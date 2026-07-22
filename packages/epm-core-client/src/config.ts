@@ -46,6 +46,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): EpmClientConfi
       serverPort: env.EPM_SERVER_PORT ? parseInt(env.EPM_SERVER_PORT) : 8080,
       useHttps: env.EPM_USE_HTTPS === "true",
       verifySslCert: env.EPM_VERIFY_SSL_CERT !== "false",
+      essbaseBasePath: env.EPM_ESSBASE_BASE_PATH || "/essbase/rest/v1",
+      aifBasePath: env.EPM_AIF_BASE_PATH || "/aif/rest/V1",
     },
   };
 
