@@ -64,6 +64,36 @@ Lower likelihood now that nothing is down (keep only if #1 and #2 clear):
 
 Note: the REST API is **not** a separate enable step — it ships with Planning 11.1.2.4+ and is live once the web app is deployed. So "REST not enabled" is unlikely; this is a plumbing/config failure in the REST path, not an outage.
 
+## Update — live diagnostic run 2026-07-21 (client-side, from the app host)
+
+Ran `scripts/test_onprem_planning_connection.py` (`diagnose_500()` matrix + extra probes) against `10.10.10.20:19000`, app `CORPRPT`, user `admin`. New evidence that **reprioritizes the root causes above and rules out the proxy theory (#1)**:
+
+| Probe | Result | What it proves |
+|---|---|---|
+| `GET .../rest/**v3**/applications` | **404** | `v3` segment is not registered on this server |
+| `GET .../rest/**11.1.2.4**/applications` | 500 | `11.1.2.4` (and `v1`) *are* registered — they route to a handler that then crashes |
+| `GET .../rest/v2/applications` | 404 | not registered |
+| `GET .../applications` **Accept: application/xml** | **406** | JAX-RS content negotiation runs — the request reaches Jersey on the Planning tier |
+| `GET .../applications` **no auth header** | **500, no `WWW-Authenticate`** | the crash happens **before authentication is evaluated** — never gets to a 401 |
+| all username-format variants | 500 (not 401) | consistent with pre-auth crash; username format is irrelevant |
+| body of every 500 | Planning's own **`Error.jsp`** UI page (`LaunchPlanningCentral.jsp`, `upk_Planning_context="HyperionPlanning"`, `HspEnterDataHelper`) | **not** the OHS "APACHE bridge" page and **not** a raw WebLogic page — the request reached the Planning web app |
+| `OPTIONS` on the same URLs | 200, `Allow: HEAD,GET,OPTIONS` | routing alive (framework-handled, no business logic) |
+| `/workspace/index.jsp` | 200 | Workspace front-end healthy |
+| 8300 / 7001 TCP probe | firewalled from client | can't bypass OHS from here — the direct-backend curl must run on the server |
+
+**Conclusion — the fault is the Planning REST web module itself (doc's cause #2), NOT the OHS proxy (#1):**
+
+- The Planning app returns **its own `Error.jsp`**, and `Accept: xml` gets a clean **406** from Jersey — both prove OHS forwards correctly to the Planning managed server and JAX-RS is running. A broken `mod_wl_ohs` bridge could produce neither (it would return the "Failure of server APACHE bridge" page and never reach Jersey). **Proxy theory ruled out.**
+- **No-auth → 500 (no `WWW-Authenticate`)** means the REST module throws an **uncaught exception during request initialization, before the security filter runs**. This also rules out the username-format / CSS-principal theory (D2) — auth is never reached.
+- **`Accept: xml` → 406** rules out a content-negotiation crash; the JSON code path is the one that throws.
+- **`v3` → 404 vs `11.1.2.4` → 500** resolves the repo's open API-version question: **`11.1.2.4` is the correct segment for this server; `v3` does not exist here.** So `EPM_API_VERSION=11.1.2.4` in `.env`/config is right, and Oracle's "canonical v3" note does not apply to this patch level.
+
+**Most probable server-side root cause now** (crash is pre-auth, in REST-module init, while UI + Workspace + repository are all up): a **partially/mismatched-patched REST/ADF module** in the `HyperionPlanning` web app throwing at servlet/filter init (`NoClassDefFoundError` / `ClassNotFoundException` / bad ADF config), or the REST module's own repository/registry datasource binding failing. The classic Planning UI works because it uses a different servlet path that doesn't hit the broken init.
+
+**Decisive next step (requires server access — 8300 is firewalled from the client):**
+1. On the server, bypass OHS: `curl -u admin http://localhost:8300/HyperionPlanning/rest/11.1.2.4/applications` — expected 500 here too (proxy already exonerated), confirming the backend.
+2. Read `Planning_ADF.log` / `HyperionPlanning.log` / `Planning0.out` at the ECID → the **exception class** distinguishes patch-mismatch (`NoClassDefFoundError`) vs datasource (`SQLException`) vs registry/CSS. This session's HTML body did not leak a fresh ECID (it's the UI `Error.jsp`), so correlate via the OHS `access_log` timestamp or use the ECID already captured below.
+
 ## Diagnostic correlation ID
 
 Search the Planning managed-server logs for this ECID to get the actual stack trace:
@@ -105,5 +135,15 @@ Search by ECID:
 ## Note for this repo
 
 - The `/jobs` WADL confirms on-prem `executeJob` expects **`application/x-www-form-urlencoded`** (`jobType`, `jobName`, `parameters`), not the Cloud-style JSON body. `packages/epm-core-client/src/client.ts` currently assumes the v3 JSON shape and will need a form-urlencoded path for on-prem once the server is healthy.
-- `EPM_API_VERSION` is set to `11.1.2.4` (legacy on-prem form); Oracle's canonical docs use `v3`. Worth confirming which the target patch level actually serves once GETs work.
+- `EPM_API_VERSION` is set to `11.1.2.4` (legacy on-prem form); Oracle's canonical docs use `v3`. **Resolved 2026-07-21:** this server serves `11.1.2.4` (and `v1`) and returns **404** for `v3`/`v2`, so `11.1.2.4` is correct for this target — see the diagnostic-run update above.
 - Consider extending `scripts/test_onprem_planning_connection.py` to probe port 8300 in addition to 19000.
+
+## Workaround implemented — read via Essbase REST (2026-07-21)
+
+While Planning REST is down, the **Essbase REST v1 API on the same host/port is healthy** and reaches the same CORPRPT data (Planning apps are Essbase-backed). Verified live against `10.10.10.20:19000`:
+
+- `GET /essbase/rest/v1/applications` → 200 (`CORPRPT`, `Demo`, `Vision`)
+- `POST /essbase/rest/v1/applications/CORPRPT/databases/CORPRPT/mdx` with the proven MDX → 200, `TotalDivisions × TotalNetPricing = 23,971,333.37`
+- `GET .../applications/CORPRPT/variables` and `.../databases/CORPRPT/variables` → 200 (substitution variables)
+
+So `EpmClient` now routes on-prem `listApplications`, `getSubstitutionVariables`, and `exportDataSlice` through Essbase REST (`essbaseMdxSlice` + `parseEssbaseMdxGrid`), not Planning REST. Gotcha: the MDX endpoint replies as `application/octet-stream` and **406s on `Accept: application/json`** — the client sends `Accept: */*`. `listJobDefinitions`/`executeJob` still target Planning REST and remain blocked until the server-side fix above lands.

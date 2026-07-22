@@ -85,5 +85,18 @@ server.registerTool(
   async () => ok(await dataIntegration.povLockStatus())
 );
 
+server.registerTool(
+  "di_integration_inventory",
+  {
+    title: "Integration inventory — apps & rules (read-only)",
+    description:
+      "Lists FDMEE / Data Management registered target applications and data load rules " +
+      "(with each rule's last job status). On-prem this scans location ids up to " +
+      "EPM_AIF_MAX_LOCATION_ID; the returned scannedThroughLocationId shows the scan bound.",
+    inputSchema: {},
+  },
+  async () => ok(await dataIntegration.integrationInventory())
+);
+
 const transport = new StdioServerTransport();
 await server.connect(transport);

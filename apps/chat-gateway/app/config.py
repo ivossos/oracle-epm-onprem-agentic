@@ -1,4 +1,5 @@
 """Static paths and settings for the chat gateway."""
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -9,7 +10,10 @@ STATIC_DIR = GATEWAY_ROOT / "static"
 
 load_dotenv(GATEWAY_ROOT / ".env", override=True)
 
-TSX_BIN = REPO_ROOT / "node_modules" / ".bin" / "tsx"
+# On Windows the .bin shim Python can exec is `tsx.cmd`; the extension-less
+# `tsx` (a shell script) only works on POSIX.
+_TSX_NAME = "tsx.cmd" if sys.platform == "win32" else "tsx"
+TSX_BIN = REPO_ROOT / "node_modules" / ".bin" / _TSX_NAME
 
 # All 8 MCP servers in the repo, exposed to the chat loop.
 MCP_SERVER_SCRIPTS = {

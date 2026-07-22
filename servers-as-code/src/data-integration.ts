@@ -1,5 +1,7 @@
 import { EpmClient } from "@epm/core-client";
 import type {
+  DataRule,
+  DmApplication,
   IntegrationJob,
   Mapping,
   Pipeline,
@@ -7,6 +9,39 @@ import type {
 } from "@epm/core-client";
 
 const client = new EpmClient();
+
+export interface IntegrationInventory {
+  applications: DmApplication[];
+  ruleCount: number;
+  rules: DataRule[];
+  scannedThroughLocationId: number;
+  /** True if the scan stopped after a long run of empty locations (likely past the end). */
+  stoppedEarly: boolean;
+  /** Count of location ids whose request errored (host blips) and were skipped. */
+  scanErrors: number;
+}
+
+/**
+ * Live FDMEE / Data Management inventory: registered target applications plus
+ * the data load rules found by scanning location ids. The scan self-tunes
+ * (parallel batches, early-stop after a gap of empty ids) up to a hard ceiling;
+ * `scannedThroughLocationId` / `stoppedEarly` / `scanErrors` make its extent
+ * explicit so nothing is silently missed.
+ */
+export async function integrationInventory(): Promise<IntegrationInventory> {
+  const [applications, ruleScan] = await Promise.all([
+    client.listDmApplications(),
+    client.listDataRules(),
+  ]);
+  return {
+    applications,
+    ruleCount: ruleScan.rules.length,
+    rules: ruleScan.rules,
+    scannedThroughLocationId: ruleScan.scannedThroughLocationId,
+    stoppedEarly: ruleScan.stoppedEarly,
+    scanErrors: ruleScan.errors,
+  };
+}
 
 export interface PipelineInventoryEntry extends Pipeline {
   integrationNames: string[];

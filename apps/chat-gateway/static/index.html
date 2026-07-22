@@ -11,7 +11,22 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
-<body class="bg-slate-900 text-slate-100">
+<body class="bg-slate-100 text-slate-800">
+    <style>
+        /* Vibrant accent helpers */
+        .brand-gradient { background-image: linear-gradient(135deg, #6366f1 0%, #a855f7 45%, #ec4899 100%); }
+        .brand-gradient-text {
+            background-image: linear-gradient(135deg, #4f46e5 0%, #9333ea 50%, #db2777 100%);
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+        }
+        .app-bg {
+            background-color: #f1f5f9;
+            background-image:
+                radial-gradient(circle at 12% 0%, rgba(99,102,241,0.12), transparent 42%),
+                radial-gradient(circle at 88% 8%, rgba(236,72,153,0.10), transparent 40%),
+                radial-gradient(circle at 60% 100%, rgba(6,182,212,0.10), transparent 45%);
+        }
+    </style>
 
     <div id="root"></div>
 
@@ -64,6 +79,51 @@
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
         );
+        const CopyIcon = ({ className }) => (
+            <svg className={className || "w-3.5 h-3.5"} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+        );
+
+        // --- COPY-TO-CLIPBOARD BUTTON (per message) ---
+        function CopyButton({ text }) {
+            const [copied, setCopied] = useState(false);
+            const handleCopy = async () => {
+                try {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        await navigator.clipboard.writeText(text);
+                    } else {
+                        // Fallback for non-secure contexts (http://localhost is fine, but just in case)
+                        const ta = document.createElement('textarea');
+                        ta.value = text;
+                        ta.style.position = 'fixed';
+                        ta.style.opacity = '0';
+                        document.body.appendChild(ta);
+                        ta.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(ta);
+                    }
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 1500);
+                } catch (err) {
+                    /* clipboard blocked — silently ignore */
+                }
+            };
+            return (
+                <button
+                    type="button"
+                    onClick={handleCopy}
+                    title={copied ? "Copied!" : "Copy message"}
+                    aria-label={copied ? "Copied" : "Copy message"}
+                    className={`opacity-0 group-hover:opacity-100 focus:opacity-100 transition flex items-center space-x-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                        copied ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-700'
+                    }`}
+                >
+                    {copied ? <CheckIcon /> : <CopyIcon />}
+                    <span>{copied ? 'Copied' : 'Copy'}</span>
+                </button>
+            );
+        }
 
         // --- DASHBOARD APP COMPONENT ---
         function OracleEpmDashboard() {
@@ -129,7 +189,7 @@
 
                 try {
                     // Try to connect to your FastAPI local endpoint
-                    const response = await fetch('http://localhost:8000/api/chat', {
+                    const response = await fetch('/api/chat', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ session_id: sessionId, message: userQuery }),
@@ -219,7 +279,7 @@
                 addLog(`Administrator selected decision: ${approved ? 'APPROVED' : 'DENIED'} for execution of ${toolName}.`);
 
                 try {
-                    const response = await fetch('http://localhost:8000/api/approve', {
+                    const response = await fetch('/api/approve', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -245,34 +305,34 @@
             };
 
             return (
-                <div className="flex flex-col h-screen bg-slate-900 text-slate-100 font-sans">
+                <div className="flex flex-col h-screen app-bg text-slate-800 font-sans">
                     {/* Header bar */}
-                    <header className="flex items-center justify-between px-6 py-4 bg-slate-950 border-b border-slate-800">
+                    <header className="flex items-center justify-between px-6 py-4 bg-white/80 backdrop-blur border-b border-slate-200 shadow-sm">
                         <div className="flex items-center space-x-3">
-                            <div className="p-2 bg-indigo-600 rounded-lg">
+                            <div className="p-2 brand-gradient rounded-lg shadow-lg shadow-fuchsia-500/30">
                                 <DatabaseIcon />
                             </div>
                             <div>
-                                <span className="text-xs font-semibold tracking-wider text-indigo-400 uppercase">On-Premises Gateway Control</span>
-                                <h1 className="text-lg font-bold tracking-tight text-white leading-tight">Oracle EPM Planning AI Agent</h1>
+                                <span className="text-xs font-semibold tracking-wider text-fuchsia-600 uppercase">On-Premises Gateway Control</span>
+                                <h1 className="text-lg font-bold tracking-tight brand-gradient-text leading-tight">Oracle EPM Planning AI Agent</h1>
                             </div>
                         </div>
 
                         <div className="hidden lg:flex items-center space-x-6">
                             <div className="flex items-center space-x-2 text-xs">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                <span className="text-slate-400 font-medium">Planning WebApp:</span>
-                                <span className="text-emerald-400 font-bold font-mono">ONLINE</span>
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-md shadow-emerald-500/50 animate-pulse" />
+                                <span className="text-slate-500 font-medium">Planning WebApp:</span>
+                                <span className="text-emerald-600 font-bold font-mono">ONLINE</span>
                             </div>
                             <div className="flex items-center space-x-2 text-xs">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                <span className="text-slate-400 font-medium">Essbase Server:</span>
-                                <span className="text-emerald-400 font-bold font-mono">ONLINE</span>
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-md shadow-emerald-500/50 animate-pulse" />
+                                <span className="text-slate-500 font-medium">Essbase Server:</span>
+                                <span className="text-emerald-600 font-bold font-mono">ONLINE</span>
                             </div>
                             <div className="flex items-center space-x-2 text-xs">
-                                <span className="w-2 h-2 rounded-full bg-indigo-500" />
-                                <span className="text-slate-400 font-medium">OLU Integration:</span>
-                                <span className="text-indigo-300 font-bold font-mono">READY</span>
+                                <span className="w-2 h-2 rounded-full bg-cyan-500 shadow-md shadow-cyan-500/50" />
+                                <span className="text-slate-500 font-medium">OLU Integration:</span>
+                                <span className="text-cyan-600 font-bold font-mono">READY</span>
                             </div>
                         </div>
                     </header>
@@ -281,28 +341,28 @@
                     <div className="flex flex-1 overflow-hidden">
                         
                         {/* Sidebar */}
-                        <aside className="w-64 bg-slate-950 border-r border-slate-800 flex flex-col justify-between p-4">
+                        <aside className="w-64 bg-white border-r border-slate-200 flex flex-col justify-between p-4">
                             <div className="space-y-6">
                                 <div>
-                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Workspace Controls</p>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Workspace Controls</p>
                                     <nav className="space-y-1">
-                                        <button 
+                                        <button
                                             onClick={() => setActiveTab('console')}
-                                            className={`w-full flex items-center space-x-3 px-3 py-2 text-xs rounded-lg font-medium transition ${activeTab === 'console' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-900 hover:text-white'}`}
+                                            className={`w-full flex items-center space-x-3 px-3 py-2 text-xs rounded-lg font-medium transition ${activeTab === 'console' ? 'brand-gradient text-white shadow-lg shadow-fuchsia-500/25' : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
                                         >
                                             <TerminalIcon className="w-4 h-4" />
                                             <span>Agent Interactive Chat</span>
                                         </button>
-                                        <button 
+                                        <button
                                             onClick={() => setActiveTab('grid')}
-                                            className={`w-full flex items-center space-x-3 px-3 py-2 text-xs rounded-lg font-medium transition ${activeTab === 'grid' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-900 hover:text-white'}`}
+                                            className={`w-full flex items-center space-x-3 px-3 py-2 text-xs rounded-lg font-medium transition ${activeTab === 'grid' ? 'brand-gradient text-white shadow-lg shadow-fuchsia-500/25' : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
                                         >
                                             <GridIcon className="w-4 h-4" />
                                             <span>Essbase Grid Viewer</span>
                                         </button>
-                                        <button 
+                                        <button
                                             onClick={() => setActiveTab('logs')}
-                                            className={`w-full flex items-center space-x-3 px-3 py-2 text-xs rounded-lg font-medium transition ${activeTab === 'logs' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-900 hover:text-white'}`}
+                                            className={`w-full flex items-center space-x-3 px-3 py-2 text-xs rounded-lg font-medium transition ${activeTab === 'logs' ? 'brand-gradient text-white shadow-lg shadow-fuchsia-500/25' : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'}`}
                                         >
                                             <FileTextIcon className="w-4 h-4" />
                                             <span>Interactive Server Logs</span>
@@ -310,17 +370,17 @@
                                     </nav>
                                 </div>
 
-                                <div className="pt-4 border-t border-slate-800/60">
-                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Environment Health</p>
-                                    <div className="bg-slate-900 p-3 rounded-lg space-y-2 text-[11px] font-mono">
-                                        <div className="flex justify-between"><span className="text-slate-400">Memory Load:</span><span className="text-slate-200">54%</span></div>
-                                        <div className="flex justify-between"><span className="text-slate-400">Server CPU:</span><span className="text-slate-200">{sysStatus.serverLoad}</span></div>
-                                        <div className="flex justify-between"><span className="text-slate-400">App Session:</span><span className="text-indigo-400 font-bold">{sessionId ? "ACTIVE" : "PENDING"}</span></div>
+                                <div className="pt-4 border-t border-slate-200">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Environment Health</p>
+                                    <div className="bg-slate-50 border border-slate-200 p-3 rounded-lg space-y-2 text-[11px] font-mono">
+                                        <div className="flex justify-between"><span className="text-slate-500">Memory Load:</span><span className="text-cyan-600">54%</span></div>
+                                        <div className="flex justify-between"><span className="text-slate-500">Server CPU:</span><span className="text-cyan-600">{sysStatus.serverLoad}</span></div>
+                                        <div className="flex justify-between"><span className="text-slate-500">App Session:</span><span className="text-fuchsia-600 font-bold">{sessionId ? "ACTIVE" : "PENDING"}</span></div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="text-[10px] text-slate-500 space-y-1">
+                            <div className="text-[10px] text-slate-400 space-y-1">
                                 <p>System Release: v11.2.14 On-Prem</p>
                                 <p className="text-[9px]">Server PID: 24108 (FastMCP Client)</p>
                             </div>
@@ -330,33 +390,36 @@
                         <main className="flex-1 flex overflow-hidden">
                             
                             {/* Left panel: Chat */}
-                            <section className="flex-1 flex flex-col bg-slate-900 border-r border-slate-800 h-full">
-                                <div className="flex items-center justify-between px-6 py-3 bg-slate-950/40 border-b border-slate-800">
+                            <section className="flex-1 flex flex-col min-h-0 bg-white/50 border-r border-slate-200 h-full">
+                                <div className="flex items-center justify-between px-6 py-3 bg-white/70 border-b border-slate-200">
                                     <div className="flex items-center space-x-2">
-                                        <TerminalIcon className="w-4 h-4 text-indigo-400" />
-                                        <span className="text-xs font-bold tracking-wide">Command Center Terminal</span>
+                                        <TerminalIcon className="w-4 h-4 text-fuchsia-500" />
+                                        <span className="text-xs font-bold tracking-wide brand-gradient-text">Command Center Terminal</span>
                                     </div>
-                                    <span className="text-[10px] text-slate-500 font-mono">Security Level: Administrative Sandbox</span>
+                                    <span className="text-[10px] text-cyan-600 font-mono">Security Level: Administrative Sandbox</span>
                                 </div>
 
-                                <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                                <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4">
                                     {messages.map((msg, idx) => (
-                                        <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                        <div key={idx} className={`group flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
                                             <div className={`max-w-[85%] rounded-xl p-4 text-xs shadow-sm leading-relaxed ${
                                                 msg.role === 'user'
-                                                    ? 'bg-indigo-600 text-white rounded-br-none'
+                                                    ? 'brand-gradient text-white rounded-br-none shadow-lg shadow-fuchsia-500/20'
                                                     : msg.type === 'tool'
-                                                    ? 'bg-slate-950 border border-amber-500/20 text-amber-300 font-mono text-[11px]'
-                                                    : 'bg-slate-950 text-slate-200 border border-slate-800 rounded-bl-none'
+                                                    ? 'bg-amber-50 border border-amber-300 text-amber-700 font-mono text-[11px]'
+                                                    : 'bg-white text-slate-700 border border-slate-200 rounded-bl-none'
                                             }`}>
                                                 <pre className="whitespace-pre-wrap font-sans">{msg.text}</pre>
+                                            </div>
+                                            <div className="h-5 mt-0.5 px-1">
+                                                <CopyButton text={msg.text} />
                                             </div>
                                         </div>
                                     ))}
                                     {loading && (
                                         <div className="flex justify-start">
-                                            <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 text-slate-400 text-xs flex items-center space-x-2 font-medium">
-                                                <RefreshCwIcon className="w-4 h-4 animate-spin text-indigo-400" />
+                                            <div className="bg-white border border-slate-200 rounded-xl p-4 text-slate-500 text-xs flex items-center space-x-2 font-medium shadow-sm">
+                                                <RefreshCwIcon className="w-4 h-4 animate-spin text-indigo-500" />
                                                 <span>Analyzing target variables...</span>
                                             </div>
                                         </div>
@@ -366,22 +429,22 @@
 
                                 {/* Security Intercept banner */}
                                 {pendingApproval && (
-                                    <div className="bg-slate-950 border-t border-amber-500/30 p-5 space-y-4 shadow-2xl relative z-10">
+                                    <div className="bg-amber-50 border-t border-amber-300 p-5 space-y-4 shadow-2xl relative z-10">
                                         <div className="flex items-start space-x-3">
-                                            <div className="p-2 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-lg">
+                                            <div className="p-2 bg-amber-100 text-amber-600 border border-amber-300 rounded-lg">
                                                 <AlertTriangleIcon />
                                             </div>
                                             <div>
-                                                <h4 className="text-sm font-bold text-amber-400">Security Gate Intercept: Approval Pending</h4>
-                                                <p className="text-xs text-slate-400 mt-1">
-                                                    The Agent requested an on-premise structure commit utilizing <span className="font-mono text-amber-300 bg-amber-500/10 px-1 rounded">{pendingApproval.name}</span>.
+                                                <h4 className="text-sm font-bold text-amber-700">Security Gate Intercept: Approval Pending</h4>
+                                                <p className="text-xs text-slate-600 mt-1">
+                                                    The Agent requested an on-premise structure commit utilizing <span className="font-mono text-amber-700 bg-amber-100 px-1 rounded">{pendingApproval.name}</span>.
                                                 </p>
                                             </div>
                                         </div>
 
-                                        <div className="bg-slate-900 border border-slate-800 p-4 rounded-lg">
-                                            <p className="text-[10px] text-slate-500 font-mono uppercase mb-2">// Proposed Payload Details</p>
-                                            <pre className="text-xs text-indigo-300 font-mono whitespace-pre overflow-x-auto max-h-36">
+                                        <div className="bg-white border border-slate-200 p-4 rounded-lg">
+                                            <p className="text-[10px] text-slate-400 font-mono uppercase mb-2">// Proposed Payload Details</p>
+                                            <pre className="text-xs text-indigo-600 font-mono whitespace-pre overflow-x-auto max-h-36">
                                                 {JSON.stringify(pendingApproval.arguments, null, 2)}
                                             </pre>
                                         </div>
@@ -389,14 +452,14 @@
                                         <div className="flex justify-end space-x-3 pt-1">
                                             <button
                                                 onClick={() => handleApproval(false)}
-                                                className="flex items-center space-x-2 px-4 py-2 text-xs font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-lg hover:bg-rose-500/20 transition"
+                                                className="flex items-center space-x-2 px-4 py-2 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 transition"
                                             >
                                                 <XIcon />
                                                 <span>Block Commit</span>
                                             </button>
                                             <button
                                                 onClick={() => handleApproval(true)}
-                                                className="flex items-center space-x-2 px-4 py-2 text-xs font-bold text-slate-950 bg-amber-500 rounded-lg hover:bg-amber-400 transition shadow-lg shadow-amber-500/10"
+                                                className="flex items-center space-x-2 px-4 py-2 text-xs font-bold text-white bg-amber-500 rounded-lg hover:bg-amber-600 transition shadow-lg shadow-amber-500/20"
                                             >
                                                 <CheckIcon />
                                                 <span>Approve & Write</span>
@@ -405,19 +468,19 @@
                                     </div>
                                 )}
 
-                                <form onSubmit={handleSend} className="p-4 bg-slate-950 border-t border-slate-800 flex space-x-2">
+                                <form onSubmit={handleSend} className="p-4 bg-white/80 border-t border-slate-200 flex space-x-2">
                                     <input
                                         type="text"
                                         value={input}
                                         onChange={(e) => setInput(e.target.value)}
                                         disabled={loading || !!pendingApproval}
                                         placeholder={pendingApproval ? "Authorize or deny the current command to continue..." : "Ask your EPM Agent (e.g. Query regional sales units)..."}
-                                        className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-4 py-3 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-100 placeholder-slate-500 disabled:opacity-50"
+                                        className="flex-1 bg-white border border-slate-300 rounded-lg px-4 py-3 text-xs focus:outline-none focus:ring-2 focus:ring-fuchsia-500 text-slate-800 placeholder-slate-400 disabled:opacity-50"
                                     />
                                     <button
                                         type="submit"
                                         disabled={loading || !input.trim() || !!pendingApproval}
-                                        className="bg-indigo-600 text-white px-5 rounded-lg text-xs font-semibold hover:bg-indigo-500 transition disabled:opacity-40"
+                                        className="brand-gradient text-white px-5 rounded-lg text-xs font-semibold hover:brightness-110 transition disabled:opacity-40 shadow-lg shadow-fuchsia-500/25"
                                     >
                                         <SendIcon />
                                     </button>
@@ -425,25 +488,25 @@
                             </section>
 
                             {/* Right Panel: Viewports */}
-                            <section className="hidden md:flex md:w-[450px] lg:w-[500px] flex-col bg-slate-950 h-full">
-                                <div className="flex border-b border-slate-800 bg-slate-950/80">
-                                    <button 
+                            <section className="hidden md:flex md:w-[450px] lg:w-[500px] flex-col bg-slate-50 h-full">
+                                <div className="flex border-b border-slate-200 bg-white">
+                                    <button
                                         onClick={() => setActiveTab('console')}
-                                        className={`flex-1 py-3 text-xs font-bold border-b-2 transition flex items-center justify-center space-x-2 ${activeTab === 'console' ? 'border-indigo-500 text-white bg-slate-900' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+                                        className={`flex-1 py-3 text-xs font-bold border-b-2 transition flex items-center justify-center space-x-2 ${activeTab === 'console' ? 'border-fuchsia-500 text-fuchsia-600 bg-fuchsia-50/50' : 'border-transparent text-slate-500 hover:text-fuchsia-500'}`}
                                     >
                                         <TerminalIcon className="w-3.5 h-3.5" />
                                         <span>Live Action Terminal</span>
                                     </button>
-                                    <button 
+                                    <button
                                         onClick={() => setActiveTab('grid')}
-                                        className={`flex-1 py-3 text-xs font-bold border-b-2 transition flex items-center justify-center space-x-2 ${activeTab === 'grid' ? 'border-indigo-500 text-white bg-slate-900' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+                                        className={`flex-1 py-3 text-xs font-bold border-b-2 transition flex items-center justify-center space-x-2 ${activeTab === 'grid' ? 'border-fuchsia-500 text-fuchsia-600 bg-fuchsia-50/50' : 'border-transparent text-slate-500 hover:text-fuchsia-500'}`}
                                     >
                                         <GridIcon className="w-3.5 h-3.5" />
                                         <span>Essbase Grid View</span>
                                     </button>
-                                    <button 
+                                    <button
                                         onClick={() => setActiveTab('logs')}
-                                        className={`flex-1 py-3 text-xs font-bold border-b-2 transition flex items-center justify-center space-x-2 ${activeTab === 'logs' ? 'border-indigo-500 text-white bg-slate-900' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+                                        className={`flex-1 py-3 text-xs font-bold border-b-2 transition flex items-center justify-center space-x-2 ${activeTab === 'logs' ? 'border-fuchsia-500 text-fuchsia-600 bg-fuchsia-50/50' : 'border-transparent text-slate-500 hover:text-fuchsia-500'}`}
                                     >
                                         <FileTextIcon className="w-3.5 h-3.5" />
                                         <span>System Console Logs</span>
@@ -452,26 +515,26 @@
 
                                 {activeTab === 'console' && (
                                     <div className="flex-1 p-6 space-y-6 overflow-y-auto">
-                                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Under-the-hood Orchestration</h3>
-                                        <div className="relative border-l border-slate-800 pl-6 ml-3 space-y-6">
+                                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">Under-the-hood Orchestration</h3>
+                                        <div className="relative border-l border-slate-200 pl-6 ml-3 space-y-6">
                                             <div className="relative">
-                                                <span className="absolute -left-[30px] top-0.5 p-1 bg-indigo-500/15 rounded-full border border-indigo-500/30 text-indigo-400">⚙️</span>
-                                                <h4 className="text-xs font-bold text-slate-200">1. Parse Natural Language Input</h4>
+                                                <span className="absolute -left-[30px] top-0.5 p-1 bg-indigo-100 rounded-full border border-indigo-300 text-indigo-500">⚙️</span>
+                                                <h4 className="text-xs font-bold text-slate-700">1. Parse Natural Language Input</h4>
                                                 <p className="text-[11px] text-slate-500 mt-1">LLM translates the user request into formal Oracle EPM action maps.</p>
                                             </div>
                                             <div className="relative">
-                                                <span className="absolute -left-[30px] top-0.5 p-1 bg-amber-500/15 rounded-full border border-amber-500/30 text-amber-400">🛡️</span>
-                                                <h4 className="text-xs font-bold text-slate-200">2. Assess Security Guardrails</h4>
+                                                <span className="absolute -left-[30px] top-0.5 p-1 bg-amber-100 rounded-full border border-amber-300 text-amber-500">🛡️</span>
+                                                <h4 className="text-xs font-bold text-slate-700">2. Assess Security Guardrails</h4>
                                                 <p className="text-[11px] text-slate-500 mt-1">Verifies if requested tool alters database schema, runs heavy rollups, or writes data.</p>
                                             </div>
                                             <div className="relative">
-                                                <span className="absolute -left-[30px] top-0.5 p-1 bg-indigo-500/15 rounded-full border border-indigo-500/30 text-indigo-400">📝</span>
-                                                <h4 className="text-xs font-bold text-slate-200">3. Construct Target Shell Commands</h4>
+                                                <span className="absolute -left-[30px] top-0.5 p-1 bg-indigo-100 rounded-full border border-indigo-300 text-indigo-500">📝</span>
+                                                <h4 className="text-xs font-bold text-slate-700">3. Construct Target Shell Commands</h4>
                                                 <p className="text-[11px] text-slate-500 mt-1">Generates exact temporary MaxL execution matrices or OLU comma-separated inputs.</p>
                                             </div>
                                             <div className="relative">
-                                                <span className="absolute -left-[30px] top-0.5 p-1 bg-emerald-500/15 rounded-full border border-emerald-500/30 text-emerald-400">🚀</span>
-                                                <h4 className="text-xs font-bold text-slate-200">4. Commit Transaction Output</h4>
+                                                <span className="absolute -left-[30px] top-0.5 p-1 bg-emerald-100 rounded-full border border-emerald-300 text-emerald-500">🚀</span>
+                                                <h4 className="text-xs font-bold text-slate-700">4. Commit Transaction Output</h4>
                                                 <p className="text-[11px] text-slate-500 mt-1">Executes the validated command safely on-premises and processes output spools back to prompt stream.</p>
                                             </div>
                                         </div>
@@ -481,27 +544,27 @@
                                 {activeTab === 'grid' && (
                                     <div className="flex-1 p-6 overflow-hidden flex flex-col">
                                         <div className="flex justify-between items-center mb-4">
-                                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Spreadsheet Data Grid Viewport</h3>
-                                            <span className="text-[10px] bg-slate-900 border border-slate-800 px-2 py-0.5 rounded font-mono text-indigo-400">Smart View Emulation</span>
+                                            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Spreadsheet Data Grid Viewport</h3>
+                                            <span className="text-[10px] bg-fuchsia-100 border border-fuchsia-300 px-2 py-0.5 rounded font-mono text-fuchsia-600">Smart View Emulation</span>
                                         </div>
 
                                         {mdxGridData ? (
-                                            <div className="flex-1 overflow-auto border border-slate-800 rounded-lg bg-slate-900">
+                                            <div className="flex-1 overflow-auto border border-slate-200 rounded-lg bg-white">
                                                 <table className="w-full text-left border-collapse text-xs font-mono">
-                                                    <thead className="bg-slate-950 text-slate-300 sticky top-0">
+                                                    <thead className="bg-slate-100 text-slate-600 sticky top-0">
                                                         <tr>
                                                             {mdxGridData.headers.map((hdr, hIdx) => (
-                                                                <th key={hIdx} className="px-3 py-2 border border-slate-800 text-slate-400 font-bold">
+                                                                <th key={hIdx} className="px-3 py-2 border border-slate-200 text-slate-600 font-bold">
                                                                     {hdr}
                                                                 </th>
                                                             ))}
                                                         </tr>
                                                     </thead>
-                                                    <tbody className="divide-y divide-slate-800">
+                                                    <tbody className="divide-y divide-slate-200">
                                                         {mdxGridData.data.map((row, rIdx) => (
-                                                            <tr key={rIdx} className="hover:bg-slate-800/50 transition">
+                                                            <tr key={rIdx} className="hover:bg-indigo-50 transition">
                                                                 {row.map((cell, cIdx) => (
-                                                                    <td key={cIdx} className="px-3 py-2 border border-slate-800 text-slate-200">
+                                                                    <td key={cIdx} className="px-3 py-2 border border-slate-200 text-slate-700">
                                                                         {cell}
                                                                     </td>
                                                                 ))}
@@ -511,22 +574,22 @@
                                                 </table>
                                             </div>
                                         ) : (
-                                            <div className="flex-grow flex flex-col items-center justify-center border border-dashed border-slate-800 rounded-lg p-6 text-center text-slate-500">
+                                            <div className="flex-grow flex flex-col items-center justify-center border border-dashed border-slate-300 rounded-lg p-6 text-center text-slate-500">
                                                 <span className="text-3xl mb-2">📊</span>
                                                 <p className="text-xs font-medium">No active Essbase grid populated.</p>
-                                                <p className="text-[10px] text-slate-600 mt-1">Run an MDX query with the agent to display structural values inside this matrix.</p>
+                                                <p className="text-[10px] text-slate-400 mt-1">Run an MDX query with the agent to display structural values inside this matrix.</p>
                                             </div>
                                         )}
                                     </div>
                                 )}
 
                                 {activeTab === 'logs' && (
-                                    <div className="flex-1 p-6 flex flex-col overflow-hidden bg-slate-950">
-                                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Live Trace Console (stdout/stderr)</h3>
-                                        <div className="flex-1 bg-slate-900 border border-slate-800 rounded-lg p-4 font-mono text-[10px] text-slate-400 overflow-y-auto space-y-1.5 scrollbar-thin">
+                                    <div className="flex-1 p-6 flex flex-col overflow-hidden bg-slate-50">
+                                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Live Trace Console (stdout/stderr)</h3>
+                                        <div className="flex-1 bg-white border border-slate-200 rounded-lg p-4 font-mono text-[10px] text-slate-600 overflow-y-auto space-y-1.5 scrollbar-thin">
                                             {systemLogs.map((log, lIdx) => (
                                                 <div key={lIdx} className="leading-relaxed whitespace-pre-wrap">
-                                                    <span className="text-slate-600">❯</span> {log}
+                                                    <span className="text-fuchsia-500">❯</span> {log}
                                                 </div>
                                             ))}
                                         </div>
